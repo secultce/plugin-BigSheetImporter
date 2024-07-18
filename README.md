@@ -8,6 +8,7 @@ Plugin para importação de uma planilha específica da Secult CE.
 erDiagram
 s ||..o{ o : has
 s ||..o{ r : has
+registration ||..|| r : has
 
 s[sheet_import]{
     integer       id                      PK
@@ -17,13 +18,13 @@ s[sheet_import]{
     integer       rows_amount
     integer       rows_saved
 }
-o[occurence_import]{
+o[occurrence_import]{
     integer       id                      PK
     timestamp     date
     integer       sheet_id                FK
     integer       row_index
     integer       column_index
-    varchar(255)  occurence
+    varchar(255)  occurrence
     varchar(255)  given_value
 }
 r[row_sheet_import]{
