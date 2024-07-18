@@ -34,12 +34,18 @@ final class SheetHelper
 
         $app = App::getInstance();
         $invalidRegistration = empty($app->repo(Registration::class)->findBy(['number' => $row[0]]));
-        $invalidProcess = !!preg_match('/[0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2}/m', $row[1]);
+        $invalidProcess = is_null($row[1])
+            ? $row[1]
+            : !!preg_match('/[0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2}/m', $row[1]);
         $invalidDate = [];
         for ($k=6;$k<15;$k++) {
             $invalidDate[] = self::validateDateString($row[$k]);
         }
 
+        foreach (array_keys($invalidDate, true) as $index) {
+            $index +=6;
+
+        }
         /** @todo: Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate,
          *         Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate,
          *         Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate, Validate
