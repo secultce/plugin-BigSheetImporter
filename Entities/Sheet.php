@@ -14,7 +14,7 @@ class Sheet extends Entity
     /**
      * @ORM\Id
      * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="identity")
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     protected $id;
 
@@ -28,16 +28,10 @@ class Sheet extends Entity
     /**
      * @var \MapasCulturais\Entities\User
      *
-     * @ORM\OneToMany(targetEntity="MapasCulturais\Entities\User")
+     * @ORM\ManyToOne(targetEntity="MapasCulturais\Entities\User")
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
     protected $user;
-
-    /**
-     * @ORM\OneToMany(targetEntity="MapasCulturais\Entities\Opportunity", indexBy="opportunity")
-     * @ORM\JoinColumn(name="opportunity_id", referencedColumnName="id", nullable=false, onDelete="cascade")
-     */
-    protected $opportunity;
 
     /**
      * @var int
@@ -47,11 +41,9 @@ class Sheet extends Entity
     protected $rowsAmount;
 
     /**
-     * @var object[]
+     * @var RowSheet[]
      *
-     * @ORM\JoinTable(name="row_sheet_import",
-     *     joinColumns={@ORM\JoinColumn(name="sheet_id", referencedColumnName="id")}
-     * )
+     * @ORM\OneToMany(targetEntity="BigSheetImporter\Entities\RowSheet", mappedBy="sheet")
      */
     protected $rows;
 }

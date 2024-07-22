@@ -2,6 +2,8 @@
 
 namespace BigSheetImporter\Helpers;
 
+use BigSheetImporter\Entities\ImportOccurrence;
+use BigSheetImporter\Entities\Sheet;
 use MapasCulturais\App;
 use MapasCulturais\Entities\Registration;
 use Shuchkin\SimpleXLS;
@@ -39,7 +41,8 @@ final class SheetHelper
             : !!preg_match('/[0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2}/m', $row[1]);
         $invalidDate = [];
         for ($k=6;$k<15;$k++) {
-            $invalidDate[] = self::validateDateString($row[$k]);
+            if($row[$k] !== null)
+                $invalidDate[] = self::validateDateString($row[$k]);
         }
 
         foreach (array_keys($invalidDate, true) as $index) {
@@ -58,4 +61,17 @@ final class SheetHelper
         return !!preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/m', $dateString);
     }
 
+    /**
+     * @param bool[] $occurrences
+     * @param Sheet $sheet
+     * @return array
+     */
+    public static function generateOccurrences(array $occurrences, Sheet $sheet): array
+    {
+        $occurrences = array_map(function ($occurrence, $key) use ($sheet) {
+            return new ImportOccurrence($occurrence, $sheet, $key + 1);
+        }, $occurrences, array_keys($occurrences));
+
+        return $occurrences;
+    }
 }

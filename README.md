@@ -14,7 +14,6 @@ s[sheet_import]{
     integer       id                      PK
     timestamp     date
     integer       user_id                 FK
-    integer       opportunity_id          FK
     integer       rows_amount
     integer       rows_saved
 }

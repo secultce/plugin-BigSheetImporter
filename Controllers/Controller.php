@@ -2,6 +2,9 @@
 
 namespace BigSheetImporter\Controllers;
 
+use BigSheetImporter\Entities\RowSheet;
+use BigSheetImporter\Entities\Sheet;
+use MapasCulturais\Entities\Registration;
 use Shuchkin\{SimpleXLSX, SimpleXLS};
 
 class Controller extends \MapasCulturais\Controller
@@ -26,5 +29,24 @@ class Controller extends \MapasCulturais\Controller
             echo '</tr>';
         }
         echo '</table>';
+    }
+
+    public function GET_sheet(): void
+    {
+        $app = \MapasCulturais\App::getInstance();
+        $sheetId = $this->data['id'];
+
+        $test = new RowSheet();
+
+        $sheet = $app->repo(Sheet::class)->find($sheetId);
+        foreach ($sheet->rows as $row ) {
+            dump($row);
+        }
+
+        $a = $app->repo(RowSheet::class)->findAll();
+        $reg = $app->repo(Registration::class)->findBy(['number' => $a[0]->registrationNumber]);
+        dump($a);
+        dump($reg);
+
     }
 }

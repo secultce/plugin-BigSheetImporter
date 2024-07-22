@@ -14,21 +14,21 @@ class ImportOccurrence extends Entity
     /**
      * @ORM\Id
      * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="identity")
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     protected $id;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="date", type="timestamp", nullable=false)
+     * @ORM\Column(name="date", type="datetime", nullable=false)
      */
     protected $date;
 
     /**
      * @var int
      *
-     * @ORM\OneToMany(targetEntity="Sheet")
+     * @ORM\ManyToOne(targetEntity="Sheet")
      * @ORM\JoinColumn(name="sheet_id", referencedColumnName="id")
      */
     protected $sheet;
