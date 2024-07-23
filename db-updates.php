@@ -50,7 +50,7 @@ return [
             date TIMESTAMP,
             sheet_id INTEGER,
             row_index INTEGER,
-            column_index INTEGER,
+            column_index CHAR(1),
             occurrence VARCHAR(255),
             given_value VARCHAR(255),
             FOREIGN KEY (sheet_id) REFERENCES sheet_import(id)

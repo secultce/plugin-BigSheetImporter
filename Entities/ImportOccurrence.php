@@ -41,9 +41,9 @@ class ImportOccurrence extends Entity
     protected $rowIndex;
 
     /**
-     * @var int
+     * @var string
      *
-     * @ORM\Column(name="column_index", type="integer")
+     * @ORM\Column(name="column_index", type="string")
      */
     protected $columnIndex;
 
@@ -60,4 +60,16 @@ class ImportOccurrence extends Entity
      * @ORM\Column(name="given_value", type="string")
      */
     protected $givenValue;
+
+    public function __construct(int $rowIndex, string $columnIndex, string $occurence, string $givenValue, ?Sheet $sheet = null)
+    {
+        parent::__construct();
+
+        $this->sheet = $sheet;
+        $this->rowIndex = $rowIndex;
+        $this->columnIndex = $columnIndex;
+        $this->occurence = $occurence;
+        $this->givenValue = $givenValue;
+        $this->date = new \DateTime();
+    }
 }
