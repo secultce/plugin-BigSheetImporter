@@ -8,7 +8,7 @@ use MapasCulturais\Entities\Registration;
 
 /**
  * @ORM\Table(name="row_sheet_import")
- * @ORM\Entity(repositoryClass="MapasCulturais\Repository")
+ * @ORM\Entity(repositoryClass=\BigSheetImporter\Repositories\RowSheetRepository::class)
  */
 class RowSheet extends Entity
 {
