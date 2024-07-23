@@ -6,9 +6,10 @@ Plugin para importação de uma planilha específica da Secult CE.
 ### Novas tabelas
 ```mermaid
 erDiagram
+s ||..o{ usr : belongs
 s ||..o{ o : has
 s ||..o{ r : has
-registration ||..|| r : has
+registration ||..|| r : related
 
 s[sheet_import]{
     integer       id                      PK
