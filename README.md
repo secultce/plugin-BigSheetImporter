@@ -39,11 +39,11 @@ r[row_sheet_import]{
     timestamp     process_date
     timestamp     communication_to_proponent_sent_date
     timestamp     asjur_receipt_date
-%%    timestamp     proponent_signature_terms_sent_date
+    timestamp     proponent_signature_terms_sent_date
     timestamp     casa_civil_sent_date
     timestamp     doe_publish_date
     timestamp     installment_request_date
-%%    timestamp     eparcerias_conference_date
+    timestamp     eparcerias_conference_date
     timestamp     interest_date
     timestamp     payment_date
     text          fiscal_name
