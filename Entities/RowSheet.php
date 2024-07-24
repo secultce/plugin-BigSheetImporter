@@ -76,6 +76,10 @@ class RowSheet extends Entity
      */
     protected $asjurReceiptDate;
 
+    /**
+     * @ORM\Column(name="proponent_signature_terms_sent_date", type="datetime", nullable=true)
+     */
+    protected $proponentSignatureTermsSentDate;
 
     /**
      * @ORM\Column(name="casa_civil_sent_date", type="datetime", nullable=true)
@@ -91,6 +95,11 @@ class RowSheet extends Entity
      * @ORM\Column(name="installment_request_date", type="datetime", nullable=true)
      */
     protected $installmentRequestDate;
+
+    /**
+     * @ORM\Column(name="eparcerias_conference_date",type="datetime", nullable=true)
+     */
+    protected $eparceriasConferenceDate;
 
     /**
      * @ORM\Column(name="interest_date", type="datetime", nullable=true)
@@ -122,4 +131,44 @@ class RowSheet extends Entity
      * @ORM\Column(name="fiscal_registry", type="string", length=20, nullable=false)
      */
     protected $fiscalRegistry;
+
+    public function updateRowSheet(
+        ?string $processNumber = null,
+        ?int $saccNumber = null,
+        ?int $termNumber = null,
+        ?string $interestNumber = null,
+        ?float $trasferValue = null,
+        ?\DateTime $processDate = null,
+        ?\DateTime $communicationToProponentSentDate = null,
+        ?\DateTime $asjurReceiptDate = null,
+        ?\DateTime $proponentSignatureTermsSentDate = null,
+        ?\DateTime $casaCivilSentDate = null,
+        ?\DateTime $doePublishDate = null,
+        ?\DateTime $installmentRequestDate = null,
+        ?\DateTime $eparceriasConferenceDate = null,
+        ?\DateTime $interestDate = null,
+        ?\DateTime $paymentDate = null,
+        ?string $fiscalName = null,
+        ?string $fiscalCpf = null,
+        ?string $fiscalRegistry = null
+    ) {
+        $this->processNumber = $processNumber;
+        $this->saccNumber = $saccNumber;
+        $this->termNumber = $termNumber;
+        $this->interestNumber = $interestNumber;
+        $this->trasferValue = $trasferValue;
+        $this->processDate = $processDate;
+        $this->communicationToProponentSentDate = $communicationToProponentSentDate;
+        $this->asjurReceiptDate = $asjurReceiptDate;
+        $this->proponentSignatureTermsSentDate = $proponentSignatureTermsSentDate;
+        $this->casaCivilSentDate = $casaCivilSentDate;
+        $this->doePublishDate = $doePublishDate;
+        $this->installmentRequestDate = $installmentRequestDate;
+        $this->eparceriasConferenceDate = $eparceriasConferenceDate;
+        $this->interestDate = $interestDate;
+        $this->paymentDate = $paymentDate;
+        $this->fiscalCpf = $fiscalCpf;
+        $this->fiscalName = $fiscalName;
+        $this->fiscalRegistry = $fiscalRegistry;
+    }
 }

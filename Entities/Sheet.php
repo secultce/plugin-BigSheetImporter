@@ -43,7 +43,14 @@ class Sheet extends Entity
     /**
      * @var RowSheet[]
      *
-     * @ORM\OneToMany(targetEntity="BigSheetImporter\Entities\RowSheet", mappedBy="sheet")
+     * @ORM\OneToMany(targetEntity=\BigSheetImporter\Entities\RowSheet::class, mappedBy="sheet", cascade="persist")
      */
     protected $rows;
+
+    /**
+     * @var ImportOccurrence[]
+     *
+     * @ORM\OneToMany(targetEntity=\BigSheetImporter\Entities\ImportOccurrence::class, mappedBy="sheet", cascade="persist")
+     */
+    protected $occurrences;
 }
