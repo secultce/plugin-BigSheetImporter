@@ -2,33 +2,63 @@
 
 namespace BigSheetImporter\Controllers;
 
-use BigSheetImporter\Entities\RowSheet;
-use BigSheetImporter\Entities\Sheet;
+use BigSheetImporter\Exceptions\InvalidSheetFormat;
+use BigSheetImporter\Services\SheetService;
+use MapasCulturais\Exceptions\PermissionDenied;
+use MapasCulturais\Exceptions\WorkflowRequest;
+use BigSheetImporter\Entities\{RowSheet, Sheet};
 use MapasCulturais\Entities\Registration;
 use Shuchkin\{SimpleXLSX, SimpleXLS};
 
 class Controller extends \MapasCulturais\Controller
 {
+    /**
+     * @throws WorkflowRequest
+     * @throws PermissionDenied
+     */
     public function POST_import(): void
     {
 //        $this->requireAuthentication();
         $tmpFilename = $_FILES['first']['tmp_name'];
 
-        $sheet = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
+        $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
 
-        echo '<table>';
-        foreach ($sheet->rows() as $key => $row) {
-            echo '<tr>';
-            foreach ($row as $k => $cell) {
-                if ($k > 5 && $k < 15) {
-                    echo "<td>";
-                        var_dump($cell);
-                    echo "</td>";
-                }
-            }
-            echo '</tr>';
+        $app = \MapasCulturais\App::getInstance();
+
+        $app->em->beginTransaction();
+        try {
+            $app->disableAccessControl();
+            $sheet = new Sheet();
+            $sheet->date = new \DateTime();
+            $sheet->user = $app->user;
+            $sheet->rowsAmount = count($xlsData->rows());
+            $sheet->save(true);
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 400);
         }
-        echo '</table>';
+
+        try {
+            $validate = SheetService::validate($xlsData);
+            $sheet->occurrences = SheetService::createOccurrences($validate->invalidData, $sheet);
+            $sheet->save(true);
+        } catch (InvalidSheetFormat $e) {
+            $this->json(['error' => $e->getMessage()], 400);
+        } catch (\Exception $e) {
+            $app->em->rollback();
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+
+        try {
+            $sheet->rows = SheetService::createRows($xlsData->rows(), $sheet, $validate->invalidRows);
+            $sheet->rowsSaved = count($sheet->rows);
+            $sheet->save(true);
+
+            $app->em->commit();
+        } catch (\Exception $e) {
+            $app->em->rollback();
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+        $app->enableAccessControl();
     }
 
     public function GET_sheet(): void
