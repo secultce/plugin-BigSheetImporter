@@ -1,8 +1,9 @@
 <?php
 
-namespace BigSheetImporter\Helpers;
+namespace BigSheetImporter\Services;
 
 use BigSheetImporter\Entities\ImportOccurrence;
+use BigSheetImporter\Entities\RowSheet;
 use BigSheetImporter\Entities\Sheet;
 use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -107,5 +108,30 @@ final class SheetService
             $occurrences[] = new ImportOccurrence(...array_values((array)$occurrence));
         }
         return $occurrences;
+    }
+
+    /**
+     * @param
+     */
+    public static function createRows(array $xlsDataRows, Sheet $sheet, array $invalidRows): Collection
+    {
+        $rows = new ArrayCollection();
+        foreach ($xlsDataRows as $key => $row) {
+            if($key === 0 || in_array($key, $invalidRows))
+                continue;
+
+            $row = array_map(function ($cell) {
+                return $cell === '' ? null : $cell;
+            }, $row);
+
+            $app = App::getInstance();
+            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $row[0]]) ?: new RowSheet();
+            $rowSheet->registrationNumber = $row[0];
+            array_shift($row);
+            $rowSheet->updateRowSheet(...$row);
+            $rowSheet->sheet = $sheet;
+            $rows[] = $rowSheet;
+        }
+        return $rows;
     }
 }
