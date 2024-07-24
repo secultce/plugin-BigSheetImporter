@@ -4,7 +4,6 @@ namespace BigSheetImporter\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 use MapasCulturais\Entity;
-use MapasCulturais\Entities\Registration;
 
 /**
  * @ORM\Table(name="row_sheet_import")
@@ -77,10 +76,6 @@ class RowSheet extends Entity
      */
     protected $asjurReceiptDate;
 
-    /**
-     * @ORM\Column(name="proponent_signature_terms_sent_date", type="datetime", nullable=true)
-     */
-    protected $proponentSignatureTermsSentDate;
 
     /**
      * @ORM\Column(name="casa_civil_sent_date", type="datetime", nullable=true)
@@ -98,11 +93,6 @@ class RowSheet extends Entity
     protected $installmentRequestDate;
 
     /**
-     * @ORM\Column(name="eparcerias_conference_date",type="datetime", nullable=true)
-     */
-    protected $eparceriasConferenceDate;
-
-    /**
      * @ORM\Column(name="interest_date", type="datetime", nullable=true)
      */
     protected $interestDate;
@@ -111,7 +101,6 @@ class RowSheet extends Entity
      * @ORM\Column(name="payment_date", type="datetime", nullable=true)
      */
     protected $paymentDate;
-
 
     /**
      * @var string
