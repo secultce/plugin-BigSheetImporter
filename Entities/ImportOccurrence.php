@@ -6,7 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 use MapasCulturais\Entity;
 
 /**
- * @ORM\Table(name="import_occurrence")
+ * @ORM\Table(name="occurrence_import")
  * @ORM\Entity(repositoryClass="MapasCulturais\Repository")
  */
 class ImportOccurrence extends Entity
@@ -50,9 +50,9 @@ class ImportOccurrence extends Entity
     /**
      * @var string
      *
-     * @ORM\Column(name="occurence", type="string")
+     * @ORM\Column(name="occurrence", type="string")
      */
-    protected $occurence;
+    protected $occurrence;
 
     /**
      * @var string
@@ -61,14 +61,14 @@ class ImportOccurrence extends Entity
      */
     protected $givenValue;
 
-    public function __construct(int $rowIndex, string $columnIndex, string $occurence, string $givenValue, ?Sheet $sheet = null)
+    public function __construct(int $rowIndex, string $columnIndex, string $occurrence, string $givenValue, ?Sheet $sheet = null)
     {
         parent::__construct();
 
         $this->sheet = $sheet;
         $this->rowIndex = $rowIndex;
         $this->columnIndex = $columnIndex;
-        $this->occurence = $occurence;
+        $this->occurrence = $occurrence;
         $this->givenValue = $givenValue;
         $this->date = new \DateTime();
     }
