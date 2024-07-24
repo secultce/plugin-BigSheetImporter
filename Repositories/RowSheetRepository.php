@@ -9,9 +9,12 @@ use MapasCulturais\Repository;
 class RowSheetRepository extends Repository
 {
     /** @override  */
-    public function findOneBy(array $criteria, ?array $orderBy = null): RowSheet
+    public function findOneBy(array $criteria, ?array $orderBy = null): ?RowSheet
     {
         $rowSheetObject = parent::findOneBy($criteria, $orderBy);
+        if(!$rowSheetObject)
+            return $rowSheetObject;
+
         $rowSheetObject->registration = $this->_em->getRepository(Registration::class)
             ->findBy(['number' => $rowSheetObject->registrationNumber]);
 
@@ -19,10 +22,13 @@ class RowSheetRepository extends Repository
     }
 
     /** @override  */
-    public function find($id, $lockMode = null, $lockVersion = null): RowSheet
+    public function find($id, $lockMode = null, $lockVersion = null): ?RowSheet
     {
         /** @var RowSheet $rowSheetObject */
         $rowSheetObject = parent::find($id, $lockMode, $lockVersion);
+        if(!$rowSheetObject)
+            return $rowSheetObject;
+
         $rowSheetObject->registration = $this->_em->getRepository(Registration::class)
             ->findBy(['number' => $rowSheetObject->registrationNumber]);
 
