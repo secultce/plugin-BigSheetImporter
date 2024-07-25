@@ -128,7 +128,7 @@ final class SheetService
             $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $row[0]]) ?: new RowSheet();
             $rowSheet->registrationNumber = $row[0];
             array_shift($row);
-            $rowSheet->updateRowSheet(...$row);
+            $rowSheet->setRowSheet(...$row);
             $rowSheet->sheet = $sheet;
             $rows[] = $rowSheet;
         }

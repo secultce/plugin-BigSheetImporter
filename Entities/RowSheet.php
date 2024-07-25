@@ -132,7 +132,7 @@ class RowSheet extends Entity
      */
     protected $fiscalRegistry;
 
-    public function updateRowSheet(
+    public function setRowSheet(
         ?string $processNumber = null,
         ?int $saccNumber = null,
         ?int $termNumber = null,
