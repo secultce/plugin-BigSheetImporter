@@ -25,7 +25,7 @@ class Controller extends \MapasCulturais\Controller
             $sheet = new Sheet();
             $sheet->date = new \DateTime();
             $sheet->user = $app->user;
-            $sheet->rowsAmount = count($xlsData->rows());
+            $sheet->rowsAmount = count($xlsData->rows()) - 1;
             $sheet->save(true);
 
             $validate = SheetService::validate($xlsData);
@@ -51,8 +51,8 @@ class Controller extends \MapasCulturais\Controller
 
         $data = [
             'sheet' => $sheet,
-            'rowsSaved' => $sheet->rows,
-            'invalidData' => $sheet->occurrences,
+            'rowsSaved' => $sheet->rows->toArray(),
+            'invalidData' => $sheet->occurrences->toArray(),
         ];
 
         $this->json($data, 201);
