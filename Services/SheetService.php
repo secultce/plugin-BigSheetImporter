@@ -64,7 +64,7 @@ final class SheetService
                 $row[0]
             );
         }
-        if ($row[1] !== null && !!preg_match('/[0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2}/m', $row[1])) {
+        if ($row[1] !== null && !is_int(preg_match('/\d{5}\.\d{6}\/\d{4}-\d{2}/', $row[1]))) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
                 chr(65+1),
@@ -72,7 +72,7 @@ final class SheetService
                 $row[1]
             );
         }
-        for ($k=6;$k<18;$k++) {
+        for ($k=6;$k<17;$k++) {
             if($row[$k] !== null && !self::validateDateString($row[$k]))
                 $invalidData[] = self::newInvalidObject(
                     $rowIndex,
@@ -87,7 +87,7 @@ final class SheetService
 
     public static function validateDateString(string $dateString): bool
     {
-        return !!preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/m', $dateString);
+        return is_int(preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/m', $dateString));
     }
 
     private static function newInvalidObject(int $rowIndex, string $columnIndex, string $message, $value): object
@@ -112,9 +112,15 @@ final class SheetService
             if($key === 0 || in_array($key, $invalidRows))
                 continue;
 
-            $row = array_map(function ($cell) {
-                return $cell === '' ? null : $cell;
-            }, $row);
+            $row = array_map(function (int $k, $cell) {
+                if($cell === '')
+                    return null;
+
+                if($k > 5 && $k < 18)
+                    $cell = new \DateTime($cell);
+
+                return $cell;
+            }, array_keys($row), array_values($row));
 
             $app = App::getInstance();
             $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $row[0]]) ?: new RowSheet();
