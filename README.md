@@ -46,6 +46,8 @@ r[row_sheet_import]{
     timestamp     eparcerias_conference_date
     timestamp     interest_date
     timestamp     payment_date
+    timestamp     signed_term_validity_init_date
+    timestamp     signed_term_validity_end_date
     text          fiscal_name
     char(14)      fiscal_cpf
     varchar(12)   fiscal_registry

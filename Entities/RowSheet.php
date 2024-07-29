@@ -112,6 +112,16 @@ class RowSheet extends Entity
     protected $paymentDate;
 
     /**
+     * @ORM\Column(name="signed_term_validity_init_date", type="datetime", nullable=true)
+     */
+    protected $signedTermValidityInitDate;
+
+    /**
+     * @ORM\Column(name="signed_term_validity_end_date", type="datetime", nullable=true)
+     */
+    protected $signedTermValidityEndDate;
+
+    /**
      * @var string
      *
      * @ORM\Column(name="fiscal_cpf", type="string", length=14, nullable=false)
@@ -148,6 +158,8 @@ class RowSheet extends Entity
         ?\DateTime $eparceriasConferenceDate = null,
         ?\DateTime $interestDate = null,
         ?\DateTime $paymentDate = null,
+        ?\DateTime $signedTermValidityInitDate = null,
+        ?\DateTime $signedTermValidityEndDate = null,
         ?string $fiscalName = null,
         ?string $fiscalCpf = null,
         ?string $fiscalRegistry = null
@@ -167,6 +179,8 @@ class RowSheet extends Entity
         $this->eparceriasConferenceDate = $eparceriasConferenceDate;
         $this->interestDate = $interestDate;
         $this->paymentDate = $paymentDate;
+        $this->signedTermValidityInitDate = $signedTermValidityInitDate;
+        $this->signedTermValidityEndDate = $signedTermValidityEndDate;
         $this->fiscalCpf = $fiscalCpf;
         $this->fiscalName = $fiscalName;
         $this->fiscalRegistry = $fiscalRegistry;

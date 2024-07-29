@@ -20,7 +20,7 @@ final class SheetService
 {
     /**
      * @param SimpleXLSX|SimpleXLS $xlsSheet
-     * @return object
+     * @throws InvalidSheetFormat
      */
     public static function validate(object $xlsSheet): object
     {
@@ -46,7 +46,7 @@ final class SheetService
      */
     public static function validateRow(array $row, int $rowIndex, array $invalidData = []): array
     {
-        if (count($row) !== 19) {
+        if (count($row) !== 21) {
             throw new InvalidSheetFormat('Número de colunas inválido', 400);
         }
 
@@ -72,7 +72,7 @@ final class SheetService
                 $row[1]
             );
         }
-        for ($k=6;$k<16;$k++) {
+        for ($k=6;$k<18;$k++) {
             if($row[$k] !== null && !self::validateDateString($row[$k]))
                 $invalidData[] = self::newInvalidObject(
                     $rowIndex,
@@ -95,11 +95,6 @@ final class SheetService
         return (object)compact('rowIndex', 'columnIndex', 'message', 'value');
     }
 
-    /**
-     * @param array $invalidData
-     * @param Sheet $sheet
-     * @return Collection
-     */
     public static function createOccurrences(array $invalidData, Sheet $sheet): Collection
     {
         $occurrences = new ArrayCollection();
@@ -110,9 +105,6 @@ final class SheetService
         return $occurrences;
     }
 
-    /**
-     * @param
-     */
     public static function createRows(array $xlsDataRows, Sheet $sheet, array $invalidRows): Collection
     {
         $rows = new ArrayCollection();
