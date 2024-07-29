@@ -17,14 +17,31 @@ $(document).ready(() => {
                 body: body
             });
 
-            // if(response.statusText === 'Invalid')
             if(!response.ok)
                 return console.error(response);
 
             const data = await response.json();
+            renderOccurrences(data.occurrences);
+
         } catch (e) {
             console.error(e);
         }
     });
     document.getElementById('avaliacoes').parentElement.appendChild(importSheetElement);
 });
+
+const renderOccurrences = occurrences => {
+    const occurrencesElement = document.createElement('div');
+    occurrencesElement.setAttribute('id', 'occurrences');
+    occurrencesElement.innerHTML = '<h2>Ocorrências</h2>';
+    const occurrencesList = document.createElement('ul');
+    occurrences.forEach(occurrence => {
+        const occurrenceElement = document.createElement('li');
+        occurrenceElement.style.color = 'red';
+        occurrenceElement.innerHTML = `<strong>${occurrence.columnIndex+occurrence.rowIndex}</strong>
+            - ${occurrence.occurrence} <span style="color:#042f2b">("${occurrence.givenValue}")</span>`;
+        occurrencesList.appendChild(occurrenceElement);
+    });
+    occurrencesElement.appendChild(occurrencesList);
+    document.getElementById('bigsheet').appendChild(occurrencesElement);
+};

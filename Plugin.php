@@ -22,8 +22,6 @@ class Plugin extends \MapasCulturais\Plugin
             $plugin->app->view->enqueueScript('app','bigsheet-script', 'js/bigsheet.js');
         });
 
-//        $this->app->hook('template(panel.opportunities.panel-header):after', function () use ($plugin) {
-//        });
     }
 
     /**

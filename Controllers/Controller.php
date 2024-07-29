@@ -52,7 +52,7 @@ class Controller extends \MapasCulturais\Controller
         $data = [
             'sheet' => $sheet,
             'rowsSaved' => $sheet->rows->toArray(),
-            'invalidData' => $sheet->occurrences->toArray(),
+            'occurrences' => $sheet->occurrences->toArray(),
         ];
 
         $this->json($data, 201);
