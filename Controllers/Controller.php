@@ -40,11 +40,21 @@ class Controller extends \MapasCulturais\Controller
         } catch (InvalidSheetFormat $e) {
             $app->em->rollback();
             $this->json(['error' => $e->getMessage()], 400);
+            return;
         } catch (\Exception $e) {
             $app->em->rollback();
             $this->json(['error' => $e->getMessage()], 500);
+            return;
         } finally {
             $app->enableAccessControl();
         }
+
+        $data = [
+            'sheet' => $sheet,
+            'rowsSaved' => $sheet->rows,
+            'invalidData' => $sheet->occurrences,
+        ];
+
+        $this->json($data, 201);
     }
 }
