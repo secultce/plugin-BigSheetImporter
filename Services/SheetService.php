@@ -64,7 +64,7 @@ final class SheetService
                 $row[0]
             );
         }
-        if ($row[1] !== null && !is_int(preg_match('/\d{5}\.\d{6}\/\d{4}-\d{2}/', $row[1]))) {
+        if ($row[1] !== null && !preg_match('/\d{5}\.\d{6}\/\d{4}-\d{2}/', $row[1])) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
                 chr(65+1),
@@ -87,7 +87,9 @@ final class SheetService
 
     public static function validateDateString(string $dateString): bool
     {
-        return is_int(preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/m', $dateString));
+        return preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/', $dateString)
+            || preg_match('/\d{2}-\d{2}-\d{4}/', $dateString)
+            || preg_match('/\d{2}\/\d{2}\/\d{4}/', $dateString);
     }
 
     private static function newInvalidObject(int $rowIndex, string $columnIndex, string $message, $value): object
@@ -117,7 +119,7 @@ final class SheetService
                     return null;
 
                 if($k > 5 && $k < 18)
-                    $cell = new \DateTime($cell);
+                    $cell = self::createDateTimeFromString($cell);
 
                 return $cell;
             }, array_keys($row), array_values($row));
@@ -131,5 +133,25 @@ final class SheetService
             $rows[] = $rowSheet;
         }
         return $rows;
+    }
+
+    public static function createDateTimeFromString(string $dateString): ?\DateTime
+    {
+        $formats = [
+            'Y-m-d H:i:s',
+            'Y/m/d H:i:s',
+            'd-m-Y',
+            'd/m/Y',
+            'Y-m-d',
+            'Y/m/d',
+        ];
+
+        foreach ($formats as $format) {
+            $dateTime = \DateTime::createFromFormat($format, $dateString);
+            if ($dateTime !== false)
+                return $dateTime;
+        }
+
+        return null;
     }
 }
