@@ -19,7 +19,6 @@ class Plugin extends \MapasCulturais\Plugin
         $plugin = $this;
         $this->app->hook('template(panel.opportunities.tab-avaliacoes):after', function () use ($plugin) {
             $plugin->tabImport();
-            $plugin->app->view->enqueueScript('app','bigsheet-script', 'js/bigsheet.js');
         });
 
     }
@@ -34,6 +33,8 @@ class Plugin extends \MapasCulturais\Plugin
 
     private function tabImport()
     {
+        $this->app->view->enqueueStyle('app','bigsheet-style', 'css/bigsheet.css');
         $this->app->view->part('bigsheet/tab-import');
+        $this->app->view->enqueueScript('app','bigsheet-script', 'js/bigsheet.js');
     }
 }
