@@ -163,7 +163,7 @@ class RowSheet extends Entity
         ?string $fiscalName = null,
         ?string $fiscalCpf = null,
         ?string $fiscalRegistry = null
-    ) {
+    ): void {
         $this->processNumber = $processNumber;
         $this->saccNumber = $saccNumber;
         $this->termNumber = $termNumber;
@@ -184,5 +184,16 @@ class RowSheet extends Entity
         $this->fiscalCpf = $fiscalCpf;
         $this->fiscalName = $fiscalName;
         $this->fiscalRegistry = $fiscalRegistry;
+    }
+
+    /** @override */
+    public function jsonSerialize()
+    {
+        $serializedArray = parent::jsonSerialize();
+
+        unset($serializedArray['registration']);
+        unset($serializedArray['sheet']);
+
+        return $serializedArray;
     }
 }
