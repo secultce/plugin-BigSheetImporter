@@ -3,10 +3,26 @@ $(document).ready(() => {
     importSheetElement.setAttribute('id', 'bigsheet');
     importSheetElement.setAttribute('style', 'display:none');
     importSheetElement.innerHTML = '<input type="file">' +
-        '<button type="submit">Importar</button>';
+        '<button type="submit" disabled>Importar</button>';
+
+    const loadingElement = document.createElement('div');
+    loadingElement.setAttribute('id', 'loading');
+    loadingElement.style.display = 'none';
+    loadingElement.innerHTML = `<img src=${MapasCulturais.spinnerURL} alt="Carregando..." />`;
+    importSheetElement.appendChild(loadingElement);
+
+    importSheetElement.querySelector('input').addEventListener('change', e => {
+        if(e.target.files.length > 0)
+            importSheetElement.querySelector('button').disabled = false;
+    });
     importSheetElement.querySelector('button').addEventListener('click', async e => {
         e.preventDefault();
-        const file = importSheetElement.querySelector('input').files[0];
+        toggleLoading(e.target, loadingElement);
+
+        const fileInput = importSheetElement.querySelector('input')
+        const file = fileInput.files[0];
+        fileInput.value = '';
+
         const body = new FormData();
         body.append('spreadsheet', file);
         body.append('entity', 'Opinion');
@@ -26,8 +42,11 @@ $(document).ready(() => {
 
         } catch (e) {
             console.error(e);
+        } finally {
+            toggleLoading(e.target, loadingElement);
         }
     });
+
     document.getElementById('avaliacoes').parentElement.appendChild(importSheetElement);
 });
 
@@ -83,4 +102,16 @@ const renderSavedRows = rows => {
     });
     savedRowsElement.appendChild(savedRowsList);
     document.getElementById('bigsheet').appendChild(savedRowsElement);
+};
+
+const toggleLoading = (buttonElement, loadingElement) => {
+    if (loadingElement.style.display === 'none') {
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = 'Importando...';
+        loadingElement.style.display = 'block';
+    } else {
+        buttonElement.disabled = false;
+        buttonElement.innerHTML = 'Importar';
+        loadingElement.style.display = 'none';
+    }
 };

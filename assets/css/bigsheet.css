@@ -1,3 +1,9 @@
+#bigsheet button[type=submit]:disabled {
+    background-color: gray;
+    color: white;
+    cursor: wait;
+}
+
 #occurrences-list {
 
 }
