@@ -5,7 +5,8 @@ namespace BigSheetImporter\Controllers;
 use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use BigSheetImporter\Services\SheetService;
 use BigSheetImporter\Entities\Sheet;
-use Shuchkin\{SimpleXLSX, SimpleXLS};
+use MapasCulturais\i;
+use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
 
 class Controller extends \MapasCulturais\Controller
 {
@@ -56,5 +57,35 @@ class Controller extends \MapasCulturais\Controller
         ];
 
         $this->json($data, 201);
+    }
+
+    public function GET_templateSheet(): void
+    {
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="template.xlsx"');
+        SimpleXLSXGen::fromArray([[
+            i::__('CÓDIGO DA INSCRIÇÃO'),
+            i::__('NÚMERO DO PROCESSO'),
+            i::__('NÚMERO DO SACC'),
+            i::__('NÚMERO DO TERMO'),
+            i::__('NÚMERO DO EMPENHO'),
+            i::__('VALOR DE REPASSE'),
+            i::__('DATA DE ABERTURA DO PROCESSO'),
+            i::__('DATA DE ENVIO DO COMUNICADO AO PROPONENTE'),
+            i::__('DATA DE RECEBIMENTO ASJUR'),
+            i::__('DATA DO ENVIO DO TERMO DE FOMENTO PARA ASSINATURA DO PROPONENTE'),
+            i::__('DATA DE ENVIO PARA CASA CIVIL'),
+            i::__('DATA DE PUBLICAÇÃO NO DOE'),
+            i::__('DATA DE SOLICITAÇÃO DA PARCELA'),
+            i::__('DATA DE CONFERÊNCIA E-PARCERIAS'),
+            i::__('DATA DO EMPENHO'),
+            i::__('DATA DO PAGAMENTO'),
+            i::__('DATA DE INÍCIO DA VIGÊNCIA DO TERMO ASSINADO'),
+            i::__('DATA DO TERMINO DA VIGÊNCIA DO TERMO ASSINADO'),
+            i::__('NOME DO FISCAL'),
+            i::__('CPF DO FISCAL'),
+            i::__('MATRÍCULA DO FISCAL'),
+        ]], 'Modelo de Planilha')->download();
+        exit();
     }
 }
