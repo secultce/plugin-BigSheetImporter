@@ -33,6 +33,9 @@ class Plugin extends \MapasCulturais\Plugin
 
     private function tabImport()
     {
+        if (!$this->app->user->isUserAdmin($this->app->user)) {
+            return;
+        }
         $this->app->view->enqueueStyle('app','bigsheet-style', 'css/bigsheet.css');
         $this->app->view->part('bigsheet/tab-import');
         $this->app->view->enqueueScript('app','bigsheet-script', 'js/bigsheet.js');

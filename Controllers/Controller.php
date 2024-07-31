@@ -18,6 +18,10 @@ class Controller extends \MapasCulturais\Controller
         $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
 
         $app = \MapasCulturais\App::getInstance();
+        if (!$app->user->isUserAdmin($this->app->user)) {
+            $this->json('', 403);
+            return;
+        }
 
         $app->em->beginTransaction();
         try {
