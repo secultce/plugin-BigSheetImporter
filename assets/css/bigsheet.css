@@ -4,6 +4,13 @@
     cursor: wait;
 }
 
-#occurrences-list {
-
+#bigsheet>div{
+    position: relative;
+    margin-top: 2em;
+}
+#bigsheet #saved-rows {
+    width: 100%;
+    position: relative;
+    overflow-x: scroll;
+    display: block;
 }

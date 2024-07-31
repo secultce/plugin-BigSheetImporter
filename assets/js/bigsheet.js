@@ -2,8 +2,11 @@ $(document).ready(() => {
     const importSheetElement = document.createElement('div');
     importSheetElement.setAttribute('id', 'bigsheet');
     importSheetElement.setAttribute('style', 'display:none');
-    importSheetElement.innerHTML = '<input type="file">' +
-        '<button type="submit" disabled>Importar</button>';
+    importSheetElement.innerHTML = '<div style="display: flex;">' +
+        '<input type="file">' +
+        '<button type="submit" disabled>Importar</button>' +
+        '<a href="/bigsheet/templateSheet" class="btn btn-default" style="margin-left: auto;">Baixar modelo</a>' +
+    '</div>';
 
     const loadingElement = document.createElement('div');
     loadingElement.setAttribute('id', 'loading');
@@ -51,6 +54,7 @@ $(document).ready(() => {
 });
 
 const renderOccurrences = occurrences => {
+    document.getElementById('occurrences')?.remove();
     const occurrencesElement = document.createElement('div');
     occurrencesElement.setAttribute('id', 'occurrences');
     occurrencesElement.innerHTML = '<h2>Ocorrências</h2>';
@@ -77,6 +81,9 @@ const renderOccurrences = occurrences => {
 };
 
 const renderSavedRows = rows => {
+    document.getElementById('saved-rows')?.parentElement.remove();
+    const containerElement = document.createElement('div');
+    containerElement.innerHTML = '<h2>Dados salvos</h2>';
     const savedRowsElement = document.createElement('table');
     savedRowsElement.setAttribute('id', 'saved-rows');
     const savedRowsList = document.createElement('tbody');
@@ -95,13 +102,14 @@ const renderSavedRows = rows => {
         for (const [key, value] of Object.entries(row)) {
             if (key === 'registration') continue;
             const cellElement = document.createElement('td');
-            cellElement.innerHTML = value;
+            cellElement.innerHTML =  value?.date ?? value;
             rowElement.appendChild(cellElement);
         }
         savedRowsList.appendChild(rowElement);
     });
     savedRowsElement.appendChild(savedRowsList);
-    document.getElementById('bigsheet').appendChild(savedRowsElement);
+    containerElement.appendChild(savedRowsElement);
+    document.getElementById('bigsheet').appendChild(containerElement);
 };
 
 const toggleLoading = (buttonElement, loadingElement) => {
