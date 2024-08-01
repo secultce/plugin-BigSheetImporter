@@ -15,7 +15,7 @@ $(document).ready(() => {
     importSheetElement.appendChild(loadingElement);
 
     importSheetElement.querySelector('input').addEventListener('change', e => {
-        if(e.target.files.length > 0)
+        if(e.target.files.length)
             importSheetElement.querySelector('button').disabled = false;
     });
     importSheetElement.querySelector('button').addEventListener('click', async e => {
