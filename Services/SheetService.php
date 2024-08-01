@@ -148,7 +148,7 @@ final class SheetService
 
         foreach ($formats as $format) {
             $dateTime = \DateTime::createFromFormat($format, $dateString);
-            if ($dateTime !== false)
+            if ($dateTime)
                 return $dateTime;
         }
 
