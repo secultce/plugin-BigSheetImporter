@@ -20,7 +20,7 @@ final class SheetService
 {
     /**
      * @param SimpleXLSX|SimpleXLS $xlsSheet
-     * @return object
+     * @throws InvalidSheetFormat
      */
     public static function validate(object $xlsSheet): object
     {
@@ -46,7 +46,7 @@ final class SheetService
      */
     public static function validateRow(array $row, int $rowIndex, array $invalidData = []): array
     {
-        if (count($row) !== 19) {
+        if (count($row) !== 21) {
             throw new InvalidSheetFormat('Número de colunas inválido', 400);
         }
 
@@ -64,7 +64,7 @@ final class SheetService
                 $row[0]
             );
         }
-        if ($row[1] !== null && !!preg_match('/[0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2}/m', $row[1])) {
+        if ($row[1] !== null && !preg_match('/\d{5}\.\d{6}\/\d{4}-\d{2}/', $row[1])) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
                 chr(65+1),
@@ -72,7 +72,7 @@ final class SheetService
                 $row[1]
             );
         }
-        for ($k=6;$k<16;$k++) {
+        for ($k=6;$k<17;$k++) {
             if($row[$k] !== null && !self::validateDateString($row[$k]))
                 $invalidData[] = self::newInvalidObject(
                     $rowIndex,
@@ -87,7 +87,9 @@ final class SheetService
 
     public static function validateDateString(string $dateString): bool
     {
-        return !!preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/m', $dateString);
+        return preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/', $dateString)
+            || preg_match('/\d{2}-\d{2}-\d{4}/', $dateString)
+            || preg_match('/\d{2}\/\d{2}\/\d{4}/', $dateString);
     }
 
     private static function newInvalidObject(int $rowIndex, string $columnIndex, string $message, $value): object
@@ -95,11 +97,6 @@ final class SheetService
         return (object)compact('rowIndex', 'columnIndex', 'message', 'value');
     }
 
-    /**
-     * @param array $invalidData
-     * @param Sheet $sheet
-     * @return Collection
-     */
     public static function createOccurrences(array $invalidData, Sheet $sheet): Collection
     {
         $occurrences = new ArrayCollection();
@@ -110,9 +107,6 @@ final class SheetService
         return $occurrences;
     }
 
-    /**
-     * @param
-     */
     public static function createRows(array $xlsDataRows, Sheet $sheet, array $invalidRows): Collection
     {
         $rows = new ArrayCollection();
@@ -120,9 +114,15 @@ final class SheetService
             if($key === 0 || in_array($key, $invalidRows))
                 continue;
 
-            $row = array_map(function ($cell) {
-                return $cell === '' ? null : $cell;
-            }, $row);
+            $row = array_map(function (int $k, $cell) {
+                if($cell === '')
+                    return null;
+
+                if($k > 5 && $k < 18)
+                    $cell = self::createDateTimeFromString($cell);
+
+                return $cell;
+            }, array_keys($row), array_values($row));
 
             $app = App::getInstance();
             $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $row[0]]) ?: new RowSheet();
@@ -133,5 +133,25 @@ final class SheetService
             $rows[] = $rowSheet;
         }
         return $rows;
+    }
+
+    public static function createDateTimeFromString(string $dateString): ?\DateTime
+    {
+        $formats = [
+            'Y-m-d H:i:s',
+            'Y/m/d H:i:s',
+            'd-m-Y',
+            'd/m/Y',
+            'Y-m-d',
+            'Y/m/d',
+        ];
+
+        foreach ($formats as $format) {
+            $dateTime = \DateTime::createFromFormat($format, $dateString);
+            if ($dateTime)
+                return $dateTime;
+        }
+
+        return null;
     }
 }

@@ -53,4 +53,16 @@ class Sheet extends Entity
      * @ORM\OneToMany(targetEntity=\BigSheetImporter\Entities\ImportOccurrence::class, mappedBy="sheet", cascade="persist")
      */
     protected $occurrences;
+
+    /** @override  */
+    public function jsonSerialize()
+    {
+        $serialized = parent::jsonSerialize();
+        $userId = $serialized['user']->id;
+        $userName = $serialized['user']->profile->name;
+
+        $serialized['user'] = (object)compact('userId', 'userName');
+
+        return $serialized;
+    }
 }

@@ -38,6 +38,8 @@ return [
             eparcerias_conference_date TIMESTAMP,
             interest_date TIMESTAMP,
             payment_date TIMESTAMP,
+            signed_term_validity_init_date TIMESTAMP,
+            signed_term_validity_end_date TIMESTAMP,
             fiscal_name TEXT,
             fiscal_cpf CHAR(14),
             fiscal_registry VARCHAR(12),
