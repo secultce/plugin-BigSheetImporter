@@ -58,4 +58,7 @@ return [
             FOREIGN KEY (sheet_id) REFERENCES sheet_import(id)
         )");
     },
+    'add notification_status to row_sheet_import table' => function () {
+        __exec("ALTER TABLE row_sheet_import ADD notification_status SMALLINT NOT NULL");
+    },
 ];

@@ -11,6 +11,7 @@ use MapasCulturais\Entity;
  */
 class RowSheet extends Entity
 {
+    const RAIO_NOTIFICATIONS_STATUS = 1;
 
     /**
      * @var int
@@ -141,6 +142,13 @@ class RowSheet extends Entity
      * @ORM\Column(name="fiscal_registry", type="string", length=20, nullable=false)
      */
     protected $fiscalRegistry;
+
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="notification_status", type="smallint", nullable=false)
+     */
+    protected $notificationStatus = self::RAIO_NOTIFICATIONS_STATUS;
 
     public function setRowSheet(
         ?string $processNumber = null,

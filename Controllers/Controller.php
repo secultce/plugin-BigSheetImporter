@@ -2,14 +2,19 @@
 
 namespace BigSheetImporter\Controllers;
 
+use BigSheetImporter\Entities\RowSheet;
 use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use BigSheetImporter\Services\SheetService;
 use BigSheetImporter\Entities\Sheet;
+use Carbon\Carbon;
+use MapasCulturais\App;
 use MapasCulturais\i;
 use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
 
 class Controller extends \MapasCulturais\Controller
 {
+    private $infosForNotifications = [];
+
     public function POST_import(): void
     {
         $this->requireAuthentication();
@@ -17,8 +22,8 @@ class Controller extends \MapasCulturais\Controller
 
         $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
 
-        $app = \MapasCulturais\App::getInstance();
-        if (!$app->user->isUserAdmin($this->app->user)) {
+        $app = App::getInstance();
+        if (!$app->user->isUserAdmin($app->user)) {
             $this->json('', 403);
             return;
         }
@@ -91,5 +96,46 @@ class Controller extends \MapasCulturais\Controller
             i::__('MATRÍCULA DO FISCAL'),
         ]], 'Modelo de Planilha')->download();
         exit();
+    }
+
+    public function GET_infoForNotificationsAccountability()
+    {
+        $app = App::i();
+
+        $this->setInfoRaioNotifications($app);
+
+        $this->json(array_values($this->infosForNotifications));
+    }
+
+    private function setInfoRaioNotifications($app)
+    {
+        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::RAIO_NOTIFICATIONS_STATUS]);
+
+        foreach ($rowSheets as $rowSheet) {
+            $diffInDays = Carbon::parse($rowSheet->signedTermValidityInitDate)->diffInDays(Carbon::now());
+
+            switch ($diffInDays) {
+                case 85:
+                    $this->handleInfoRaioNotifications($app, $rowSheet, 'raio_85_dias');
+                    break;
+                case 90:
+                    $this->handleInfoRaioNotifications($app, $rowSheet, 'raio_90_dias');
+                    break;
+                case 105:
+                    $this->handleInfoRaioNotifications($app, $rowSheet, 'raio_105_dias');
+                    break;
+            }
+        }
+    }
+
+    private function handleInfoRaioNotifications($app, $rowSheet, $notificationType)
+    {
+        $rowSheetId = $rowSheet->id;
+        $registration = $app->repo('Registration')->findOneBy(['number' => $rowSheet->registrationNumber]);
+
+        $this->infosForNotifications[$rowSheetId]["registration_id"] = $registration->id;
+        $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
+        $this->infosForNotifications[$rowSheetId]["user_email"] = $registration->owner->user->email;
+        $this->infosForNotifications[$rowSheetId]["notification_type"] = $notificationType;
     }
 }
