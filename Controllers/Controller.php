@@ -103,6 +103,7 @@ class Controller extends \MapasCulturais\Controller
         $app = App::i();
 
         $this->setInfoRaioNotifications($app);
+        $this->setInfoRefoNotifications($app);
 
         $this->json(array_values($this->infosForNotifications));
     }
@@ -116,19 +117,37 @@ class Controller extends \MapasCulturais\Controller
 
             switch ($diffInDays) {
                 case 85:
-                    $this->handleInfoRaioNotifications($app, $rowSheet, 'raio_85_dias');
+                    $this->handleInfoNotifications($app, $rowSheet, 'raio_85_dias');
                     break;
                 case 90:
-                    $this->handleInfoRaioNotifications($app, $rowSheet, 'raio_90_dias');
+                    $this->handleInfoNotifications($app, $rowSheet, 'raio_90_dias');
                     break;
                 case 105:
-                    $this->handleInfoRaioNotifications($app, $rowSheet, 'raio_105_dias');
+                    $this->handleInfoNotifications($app, $rowSheet, 'raio_105_dias');
                     break;
             }
         }
     }
 
-    private function handleInfoRaioNotifications($app, $rowSheet, $notificationType)
+    private function setInfoRefoNotifications($app)
+    {
+        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::REFO_NOTIFICATIONS_STATUS]);
+
+        foreach ($rowSheets as $rowSheet) {
+            $diffInDays = Carbon::parse($rowSheet->signedTermValidityEndDate)->diffInDays(Carbon::now());
+
+            switch ($diffInDays) {
+                case 55:
+                    $this->handleInfoNotifications($app, $rowSheet, 'refo_55_dias');
+                    break;
+                case 60:
+                    $this->handleInfoNotifications($app, $rowSheet, 'refo_60_dias');
+                    break;
+            }
+        }
+    }
+
+    private function handleInfoNotifications($app, $rowSheet, $notificationType)
     {
         $rowSheetId = $rowSheet->id;
         $registration = $app->repo('Registration')->findOneBy(['number' => $rowSheet->registrationNumber]);

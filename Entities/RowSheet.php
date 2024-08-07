@@ -12,6 +12,7 @@ use MapasCulturais\Entity;
 class RowSheet extends Entity
 {
     const RAIO_NOTIFICATIONS_STATUS = 1;
+    const REFO_NOTIFICATIONS_STATUS = 2;
 
     /**
      * @var int
