@@ -61,13 +61,19 @@ return [
     'add notification_status to row_sheet_import table' => function () {
         __exec("ALTER TABLE row_sheet_import ADD notification_status SMALLINT NOT NULL");
     },
-    'insert notification days to term table' => function () {
+    'insert days of accountability notifications in term table' => function () {
         __exec("INSERT INTO term (taxonomy, term, description) VALUES 
-            ('notifications_accountability', '85_dias', 'raio'),
-            ('notifications_accountability', '90_dias', 'raio'),
-            ('notifications_accountability', '105_dias', 'raio'),
-            ('notifications_accountability', '55_dias', 'refo'),
-            ('notifications_accountability', '60_dias', 'refo')
+            ('notifications_accountability', '85', 'raio'),
+            ('notifications_accountability', '90', 'raio'),
+            ('notifications_accountability', '105', 'raio'),
+            ('notifications_accountability', '55', 'refo'),
+            ('notifications_accountability', '60', 'refo')
         ");
-    }
+    },
+    'insert deadline for submitting accountability in term table' => function () {
+        __exec("INSERT INTO term (taxonomy, term, description) VALUES 
+            ('accountability_deadline', '90', 'raio'),
+            ('accountability_deadline', '60', 'refo')
+        ");
+    },
 ];

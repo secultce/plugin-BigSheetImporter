@@ -109,46 +109,64 @@ class Controller extends \MapasCulturais\Controller
 
     private function setInfoRaioNotifications()
     {
-        $rowSheets = App::i()->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::RAIO_NOTIFICATIONS_STATUS]);
-        $terms = App::i()->repo('Term')->findBy([
+        $app = App::i();
+        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::RAIO_NOTIFICATIONS_STATUS]);
+        $terms = $app->repo('Term')->findBy([
             'taxonomy' => 'notifications_accountability',
+            'description' => 'raio'
+        ]);
+        $accountabilityDeadline = $app->repo('Term')->findOneBy([
+            'taxonomy' => 'accountability_deadline',
             'description' => 'raio'
         ]);
 
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityInitDate)->diffInDays(Carbon::now());
 
-            $this->checkNotificationDay($terms, $diffInDays, $rowSheet);
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline);
         }
     }
 
     private function setInfoRefoNotifications()
     {
-        $rowSheets = App::i()->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::REFO_NOTIFICATIONS_STATUS]);
-        $terms = App::i()->repo('Term')->findBy([
+        $app = App::i();
+        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::REFO_NOTIFICATIONS_STATUS]);
+        $terms = $app->repo('Term')->findBy([
             'taxonomy' => 'notifications_accountability',
+            'description' => 'refo'
+        ]);
+        $accountabilityDeadline = $app->repo('Term')->findOneBy([
+            'taxonomy' => 'accountability_deadline',
             'description' => 'refo'
         ]);
 
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityEndDate)->diffInDays(Carbon::now());
 
-            $this->checkNotificationDay($terms, $diffInDays, $rowSheet);
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline);
         }
     }
 
-    private function checkNotificationDay($terms, $days, $rowSheet)
+    private function checkNotificationDay($terms, $days, $rowSheet, $accountabilityDeadline)
     {
         $hasTerm = array_filter($terms, function ($term) use ($days) {
-            return $term->term === "{$days}_dias";
+            return (int) $term->term === $days;
         });
 
         if ($hasTerm) {
-            $term = current($hasTerm);
-            $notificationType = "{$term->description}_{$term->term}";
+            if ($days < (int) $accountabilityDeadline->term) {
+                $diffDays = (int) $accountabilityDeadline->term - $days;
+                $notificationMsg = "faltam $diffDays dias";
+            } elseif ($days === (int) $accountabilityDeadline->term) {
+                $notificationMsg = "hoje";
+            } else {
+                $diffDays = $days - (int) $accountabilityDeadline->term;
+                $notificationMsg = "passaram-se $diffDays dias";
+            }
+
             $this->rowSheet = $rowSheet;
 
-            $this->handleInfoNotifications($notificationType);
+            $this->handleInfoNotifications($notificationMsg);
         }
     }
 
@@ -160,6 +178,6 @@ class Controller extends \MapasCulturais\Controller
         $this->infosForNotifications[$rowSheetId]["registration_id"] = $registration->id;
         $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
         $this->infosForNotifications[$rowSheetId]["user_email"] = $registration->owner->user->email;
-        $this->infosForNotifications[$rowSheetId]["notification_type"] = $notificationType;
+        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationType;
     }
 }
