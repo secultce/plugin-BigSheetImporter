@@ -14,6 +14,7 @@ use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
 class Controller extends \MapasCulturais\Controller
 {
     private $infosForNotifications = [];
+    private $rowSheet;
 
     public function POST_import(): void
     {
@@ -100,57 +101,61 @@ class Controller extends \MapasCulturais\Controller
 
     public function GET_infoForNotificationsAccountability()
     {
-        $app = App::i();
-
-        $this->setInfoRaioNotifications($app);
-        $this->setInfoRefoNotifications($app);
+        $this->setInfoRaioNotifications();
+        $this->setInfoRefoNotifications();
 
         $this->json(array_values($this->infosForNotifications));
     }
 
-    private function setInfoRaioNotifications($app)
+    private function setInfoRaioNotifications()
     {
-        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::RAIO_NOTIFICATIONS_STATUS]);
+        $rowSheets = App::i()->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::RAIO_NOTIFICATIONS_STATUS]);
+        $terms = App::i()->repo('Term')->findBy([
+            'taxonomy' => 'notifications_accountability',
+            'description' => 'raio'
+        ]);
 
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityInitDate)->diffInDays(Carbon::now());
 
-            switch ($diffInDays) {
-                case 85:
-                    $this->handleInfoNotifications($app, $rowSheet, 'raio_85_dias');
-                    break;
-                case 90:
-                    $this->handleInfoNotifications($app, $rowSheet, 'raio_90_dias');
-                    break;
-                case 105:
-                    $this->handleInfoNotifications($app, $rowSheet, 'raio_105_dias');
-                    break;
-            }
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet);
         }
     }
 
-    private function setInfoRefoNotifications($app)
+    private function setInfoRefoNotifications()
     {
-        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::REFO_NOTIFICATIONS_STATUS]);
+        $rowSheets = App::i()->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::REFO_NOTIFICATIONS_STATUS]);
+        $terms = App::i()->repo('Term')->findBy([
+            'taxonomy' => 'notifications_accountability',
+            'description' => 'refo'
+        ]);
 
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityEndDate)->diffInDays(Carbon::now());
 
-            switch ($diffInDays) {
-                case 55:
-                    $this->handleInfoNotifications($app, $rowSheet, 'refo_55_dias');
-                    break;
-                case 60:
-                    $this->handleInfoNotifications($app, $rowSheet, 'refo_60_dias');
-                    break;
-            }
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet);
         }
     }
 
-    private function handleInfoNotifications($app, $rowSheet, $notificationType)
+    private function checkNotificationDay($terms, $days, $rowSheet)
     {
-        $rowSheetId = $rowSheet->id;
-        $registration = $app->repo('Registration')->findOneBy(['number' => $rowSheet->registrationNumber]);
+        $hasTerm = array_filter($terms, function ($term) use ($days) {
+            return $term->term === "{$days}_dias";
+        });
+
+        if ($hasTerm) {
+            $term = current($hasTerm);
+            $notificationType = "{$term->description}_{$term->term}";
+            $this->rowSheet = $rowSheet;
+
+            $this->handleInfoNotifications($notificationType);
+        }
+    }
+
+    private function handleInfoNotifications($notificationType)
+    {
+        $rowSheetId = $this->rowSheet->id;
+        $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
 
         $this->infosForNotifications[$rowSheetId]["registration_id"] = $registration->id;
         $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
