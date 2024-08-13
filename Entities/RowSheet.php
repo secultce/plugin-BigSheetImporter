@@ -13,6 +13,7 @@ class RowSheet extends Entity
 {
     const RAIO_NOTIFICATIONS_STATUS = 1;
     const REFO_NOTIFICATIONS_STATUS = 2;
+    const ALL_NOTIFICATIONS_SENT_STATUS = 3;
 
     /**
      * @var int

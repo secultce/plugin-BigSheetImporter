@@ -15,7 +15,6 @@ class Controller extends \MapasCulturais\Controller
 {
     private $infosForNotifications = [];
     private $rowSheet;
-    private $notificationType;
 
     public function POST_import(): void
     {
@@ -164,6 +163,10 @@ class Controller extends \MapasCulturais\Controller
             } elseif ($days === (int)$accountabilityDeadline->term) {
                 $todayDate = Carbon::now()->format('d/m/Y');
                 $notificationMsg = "encerra-se hoje $todayDate";
+
+                if ($notificationType === 'refo') {
+                    $isLastNotification = true;
+                }
             } else {
                 $diffDays = $days - (int)$accountabilityDeadline->term;
                 $lastDay = Carbon::now()->subDays($diffDays)->format('d/m/Y');
@@ -172,13 +175,12 @@ class Controller extends \MapasCulturais\Controller
             }
 
             $this->rowSheet = $rowSheet;
-            $this->notificationType = $notificationType;
 
-            $this->handleInfoNotifications($notificationMsg, $isLastNotification);
+            $this->handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification);
         }
     }
 
-    private function handleInfoNotifications($notificationMsg, $isLastNotification)
+    private function handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification)
     {
         $rowSheetId = $this->rowSheet->id;
         $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
@@ -186,8 +188,19 @@ class Controller extends \MapasCulturais\Controller
         $this->infosForNotifications[$rowSheetId]["registration_number"] = $registration->number;
         $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
         $this->infosForNotifications[$rowSheetId]["user_email"] = $registration->owner->user->email;
-        $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($this->notificationType);
+        $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($notificationType);
         $this->infosForNotifications[$rowSheetId]["is_last_notification"] = $isLastNotification;
         $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
+    }
+
+    public function POST_updateNotificationStatus()
+    {
+        $app = App::i();
+        $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $this->data["registration_number"]]);
+
+        $app->disableAccessControl();
+        $rowSheet->notificationStatus++;
+        $rowSheet->save(true);
+        $app->enableAccessControl();
     }
 }
