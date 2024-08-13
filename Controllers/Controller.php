@@ -15,6 +15,7 @@ class Controller extends \MapasCulturais\Controller
 {
     private $infosForNotifications = [];
     private $rowSheet;
+    private $notificationType;
 
     public function POST_import(): void
     {
@@ -123,7 +124,7 @@ class Controller extends \MapasCulturais\Controller
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityInitDate)->diffInDays(Carbon::now());
 
-            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline);
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline, 'raio');
         }
     }
 
@@ -143,41 +144,50 @@ class Controller extends \MapasCulturais\Controller
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityEndDate)->diffInDays(Carbon::now());
 
-            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline);
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline, 'refo');
         }
     }
 
-    private function checkNotificationDay($terms, $days, $rowSheet, $accountabilityDeadline)
+    private function checkNotificationDay($terms, $days, $rowSheet, $accountabilityDeadline, $notificationType)
     {
         $hasTerm = array_filter($terms, function ($term) use ($days) {
-            return (int) $term->term === $days;
+            return (int)$term->term === $days;
         });
 
         if ($hasTerm) {
-            if ($days < (int) $accountabilityDeadline->term) {
-                $diffDays = (int) $accountabilityDeadline->term - $days;
-                $notificationMsg = "faltam $diffDays dias";
-            } elseif ($days === (int) $accountabilityDeadline->term) {
-                $notificationMsg = "hoje";
+            $isLastNotification = false;
+
+            if ($days < (int)$accountabilityDeadline->term) {
+                $diffDays = (int)$accountabilityDeadline->term - $days;
+                $futureDay = Carbon::now()->addDays($diffDays)->format('d/m/Y');
+                $notificationMsg = "encerra-se no dia $futureDay";
+            } elseif ($days === (int)$accountabilityDeadline->term) {
+                $todayDate = Carbon::now()->format('d/m/Y');
+                $notificationMsg = "encerra-se hoje $todayDate";
             } else {
-                $diffDays = $days - (int) $accountabilityDeadline->term;
-                $notificationMsg = "passaram-se $diffDays dias";
+                $diffDays = $days - (int)$accountabilityDeadline->term;
+                $lastDay = Carbon::now()->subDays($diffDays)->format('d/m/Y');
+                $notificationMsg = "encerrou-se no dia $lastDay";
+                $isLastNotification = true;
             }
 
             $this->rowSheet = $rowSheet;
+            $this->notificationType = $notificationType;
 
-            $this->handleInfoNotifications($notificationMsg);
+            $this->handleInfoNotifications($notificationMsg, $isLastNotification);
         }
     }
 
-    private function handleInfoNotifications($notificationType)
+    private function handleInfoNotifications($notificationMsg, $isLastNotification)
     {
         $rowSheetId = $this->rowSheet->id;
         $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
 
-        $this->infosForNotifications[$rowSheetId]["registration_id"] = $registration->id;
+        $this->infosForNotifications[$rowSheetId]["registration_number"] = $registration->number;
         $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
         $this->infosForNotifications[$rowSheetId]["user_email"] = $registration->owner->user->email;
-        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationType;
+        $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($this->notificationType);
+        $this->infosForNotifications[$rowSheetId]["is_last_notification"] = $isLastNotification;
+        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
     }
 }
