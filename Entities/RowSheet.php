@@ -3,6 +3,7 @@
 namespace BigSheetImporter\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
+use MapasCulturais\App;
 use MapasCulturais\Entity;
 
 /**
@@ -205,5 +206,23 @@ class RowSheet extends Entity
         unset($serializedArray['sheet']);
 
         return $serializedArray;
+    }
+
+    public function updateNotificationStatus()
+    {
+        $app = App::i();
+
+        $app->disableAccessControl();
+
+        switch ($this->notificationStatus) {
+            case self::REFO_NOTIFICATIONS_STATUS:
+                $this->notificationStatus = self::ALL_NOTIFICATIONS_SENT_STATUS;
+                break;
+            default:
+                $this->notificationStatus = self::REFO_NOTIFICATIONS_STATUS;
+        }
+
+        $this->save(true);
+        $app->enableAccessControl();
     }
 }

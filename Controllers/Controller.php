@@ -195,12 +195,8 @@ class Controller extends \MapasCulturais\Controller
 
     public function POST_updateNotificationStatus()
     {
-        $app = App::i();
-        $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $this->data["registration_number"]]);
+        $rowSheet = App::i()->repo(RowSheet::class)->findOneBy(['registrationNumber' => $this->data["registration_number"]]);
 
-        $app->disableAccessControl();
-        $rowSheet->notificationStatus++;
-        $rowSheet->save(true);
-        $app->enableAccessControl();
+        $rowSheet->updateNotificationStatus();
     }
 }
