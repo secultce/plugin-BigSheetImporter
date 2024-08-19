@@ -101,6 +101,10 @@ class Controller extends \MapasCulturais\Controller
 
     public function GET_infoForNotificationsAccountability()
     {
+        if (!isset($_SERVER['HTTP_ACCESS_TOKEN']) || $_SERVER['HTTP_ACCESS_TOKEN'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+        }
+
         $this->setInfoRaioNotifications();
         $this->setInfoRefoNotifications();
 
