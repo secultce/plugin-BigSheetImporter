@@ -3,6 +3,7 @@
 namespace BigSheetImporter\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
+use MapasCulturais\App;
 use MapasCulturais\Entity;
 
 /**
@@ -11,6 +12,9 @@ use MapasCulturais\Entity;
  */
 class RowSheet extends Entity
 {
+    const RAIO_NOTIFICATIONS_STATUS = 1;
+    const REFO_NOTIFICATIONS_STATUS = 2;
+    const ALL_NOTIFICATIONS_SENT_STATUS = 3;
 
     /**
      * @var int
@@ -142,6 +146,13 @@ class RowSheet extends Entity
      */
     protected $fiscalRegistry;
 
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="notification_status", type="smallint", nullable=false)
+     */
+    protected $notificationStatus = self::RAIO_NOTIFICATIONS_STATUS;
+
     public function setRowSheet(
         ?string $processNumber = null,
         ?int $saccNumber = null,
@@ -195,5 +206,23 @@ class RowSheet extends Entity
         unset($serializedArray['sheet']);
 
         return $serializedArray;
+    }
+
+    public function updateNotificationStatus()
+    {
+        $app = App::i();
+
+        $app->disableAccessControl();
+
+        switch ($this->notificationStatus) {
+            case self::REFO_NOTIFICATIONS_STATUS:
+                $this->notificationStatus = self::ALL_NOTIFICATIONS_SENT_STATUS;
+                break;
+            default:
+                $this->notificationStatus = self::REFO_NOTIFICATIONS_STATUS;
+        }
+
+        $this->save(true);
+        $app->enableAccessControl();
     }
 }
