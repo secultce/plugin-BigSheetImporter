@@ -58,4 +58,22 @@ return [
             FOREIGN KEY (sheet_id) REFERENCES sheet_import(id)
         )");
     },
+    'add notification_status to row_sheet_import table' => function () {
+        __exec("ALTER TABLE row_sheet_import ADD notification_status SMALLINT NOT NULL");
+    },
+    'insert days of accountability notifications in term table' => function () {
+        __exec("INSERT INTO term (taxonomy, term, description) VALUES 
+            ('notifications_accountability', '85', 'raio'),
+            ('notifications_accountability', '90', 'raio'),
+            ('notifications_accountability', '105', 'raio'),
+            ('notifications_accountability', '55', 'refo'),
+            ('notifications_accountability', '60', 'refo')
+        ");
+    },
+    'insert deadline for submitting accountability in term table' => function () {
+        __exec("INSERT INTO term (taxonomy, term, description) VALUES 
+            ('accountability_deadline', '90', 'raio'),
+            ('accountability_deadline', '60', 'refo')
+        ");
+    },
 ];

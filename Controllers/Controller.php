@@ -2,14 +2,20 @@
 
 namespace BigSheetImporter\Controllers;
 
+use BigSheetImporter\Entities\RowSheet;
 use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use BigSheetImporter\Services\SheetService;
 use BigSheetImporter\Entities\Sheet;
+use Carbon\Carbon;
+use MapasCulturais\App;
 use MapasCulturais\i;
 use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
 
 class Controller extends \MapasCulturais\Controller
 {
+    private $infosForNotifications = [];
+    private $rowSheet;
+
     public function POST_import(): void
     {
         $this->requireAuthentication();
@@ -17,7 +23,7 @@ class Controller extends \MapasCulturais\Controller
 
         $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
 
-        $app = \MapasCulturais\App::getInstance();
+        $app = App::getInstance();
         if (!$app->user->isUserAdmin($app->user)) {
             $this->json('', 403);
             return;
@@ -91,5 +97,114 @@ class Controller extends \MapasCulturais\Controller
             i::__('MATRÍCULA DO FISCAL'),
         ]], 'Modelo de Planilha')->download();
         exit();
+    }
+
+    public function GET_infoForNotificationsAccountability()
+    {
+        if (!isset($_SERVER['HTTP_ACCESS_TOKEN']) || $_SERVER['HTTP_ACCESS_TOKEN'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+        }
+
+        $this->setInfoRaioNotifications();
+        $this->setInfoRefoNotifications();
+
+        $this->json(array_values($this->infosForNotifications));
+    }
+
+    private function setInfoRaioNotifications()
+    {
+        $app = App::i();
+        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::RAIO_NOTIFICATIONS_STATUS]);
+        $terms = $app->repo('Term')->findBy([
+            'taxonomy' => 'notifications_accountability',
+            'description' => 'raio'
+        ]);
+        $accountabilityDeadline = $app->repo('Term')->findOneBy([
+            'taxonomy' => 'accountability_deadline',
+            'description' => 'raio'
+        ]);
+
+        foreach ($rowSheets as $rowSheet) {
+            $diffInDays = Carbon::parse($rowSheet->signedTermValidityInitDate)->diffInDays(Carbon::now());
+
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline, 'raio');
+        }
+    }
+
+    private function setInfoRefoNotifications()
+    {
+        $app = App::i();
+        $rowSheets = $app->repo(RowSheet::class)->findBy(['notificationStatus' => RowSheet::REFO_NOTIFICATIONS_STATUS]);
+        $terms = $app->repo('Term')->findBy([
+            'taxonomy' => 'notifications_accountability',
+            'description' => 'refo'
+        ]);
+        $accountabilityDeadline = $app->repo('Term')->findOneBy([
+            'taxonomy' => 'accountability_deadline',
+            'description' => 'refo'
+        ]);
+
+        foreach ($rowSheets as $rowSheet) {
+            $diffInDays = Carbon::parse($rowSheet->signedTermValidityEndDate)->diffInDays(Carbon::now());
+
+            $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline, 'refo');
+        }
+    }
+
+    private function checkNotificationDay($terms, $days, $rowSheet, $accountabilityDeadline, $notificationType)
+    {
+        $hasTerm = array_filter($terms, function ($term) use ($days) {
+            return (int)$term->term === $days;
+        });
+
+        if ($hasTerm) {
+            $isLastNotification = false;
+
+            if ($days < (int)$accountabilityDeadline->term) {
+                $diffDays = (int)$accountabilityDeadline->term - $days;
+                $futureDay = Carbon::now()->addDays($diffDays)->format('d/m/Y');
+                $notificationMsg = "encerra-se no dia $futureDay";
+            } elseif ($days === (int)$accountabilityDeadline->term) {
+                $todayDate = Carbon::now()->format('d/m/Y');
+                $notificationMsg = "encerra-se hoje $todayDate";
+
+                if ($notificationType === 'refo') {
+                    $isLastNotification = true;
+                }
+            } else {
+                $diffDays = $days - (int)$accountabilityDeadline->term;
+                $lastDay = Carbon::now()->subDays($diffDays)->format('d/m/Y');
+                $notificationMsg = "encerrou-se no dia $lastDay";
+                $isLastNotification = true;
+            }
+
+            $this->rowSheet = $rowSheet;
+
+            $this->handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification);
+        }
+    }
+
+    private function handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification)
+    {
+        $rowSheetId = $this->rowSheet->id;
+        $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
+
+        $this->infosForNotifications[$rowSheetId]["registration_number"] = $registration->number;
+        $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
+        $this->infosForNotifications[$rowSheetId]["user_email"] = $registration->owner->user->email;
+        $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($notificationType);
+        $this->infosForNotifications[$rowSheetId]["is_last_notification"] = $isLastNotification;
+        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
+    }
+
+    public function POST_updateNotificationStatus()
+    {
+        if (!isset($_SERVER['HTTP_ACCESS_TOKEN']) || $_SERVER['HTTP_ACCESS_TOKEN'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+        }
+
+        $rowSheet = App::i()->repo(RowSheet::class)->findOneBy(['registrationNumber' => $this->data["registration_number"]]);
+
+        $rowSheet->updateNotificationStatus();
     }
 }
