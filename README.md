@@ -53,3 +53,21 @@ r[row_sheet_import]{
     varchar(12)   fiscal_registry
 }
 ```
+
+# API - DOC. DO ENDPOINT
+
+### Sessão que documentação o endpoint existente e a finalidade
+
+ℹ️ - Informação da responsabilidade das notificações
+#### GET  infoForNotificationsAccountability
+**Rota**: bigsheet/infoForNotificationsAccountability
+**Retorno**: Json
+**Parâmetros**: Request com HTTP_ACCESS_TOKEN
+
+ℹ️ - Atualiza o status da notificação para não ser notificado novamente
+#### POST  updateNotificationStatus
+**Rota**: bigsheet/updateNotificationStatus
+**Retorno**: Json
+**Parâmetros**: Request com HTTP_ACCESS_TOKEN , registration_number
+
+
