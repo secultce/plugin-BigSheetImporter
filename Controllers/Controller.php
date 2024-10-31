@@ -101,13 +101,14 @@ class Controller extends \MapasCulturais\Controller
 
     public function GET_infoForNotificationsAccountability()
     {
-        if (!isset($_SERVER['HTTP_ACCESS_TOKEN']) || $_SERVER['HTTP_ACCESS_TOKEN'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
+        
+        if (!isset($this->data['access_token']) || $this->data['access_token'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
             $this->json(['message' => 'Acesso não autorizado'], 401);
         }
-
+       
         $this->setInfoRaioNotifications();
         $this->setInfoRefoNotifications();
-
+       
         $this->json(array_values($this->infosForNotifications));
     }
 
@@ -123,10 +124,8 @@ class Controller extends \MapasCulturais\Controller
             'taxonomy' => 'accountability_deadline',
             'description' => 'raio'
         ]);
-
         foreach ($rowSheets as $rowSheet) {
             $diffInDays = Carbon::parse($rowSheet->signedTermValidityInitDate)->diffInDays(Carbon::now());
-
             $this->checkNotificationDay($terms, $diffInDays, $rowSheet, $accountabilityDeadline, 'raio');
         }
     }
@@ -151,15 +150,23 @@ class Controller extends \MapasCulturais\Controller
         }
     }
 
+    /**
+     * Chega os dias das últimas notificações para não enviar em duplicidade
+     * @param mixed $terms
+     * @param mixed $days
+     * @param mixed $rowSheet
+     * @param mixed $accountabilityDeadline
+     * @param mixed $notificationType
+     * @return void
+     */
     private function checkNotificationDay($terms, $days, $rowSheet, $accountabilityDeadline, $notificationType)
     {
         $hasTerm = array_filter($terms, function ($term) use ($days) {
             return (int)$term->term === $days;
         });
-
+       
         if ($hasTerm) {
             $isLastNotification = false;
-
             if ($days < (int)$accountabilityDeadline->term) {
                 $diffDays = (int)$accountabilityDeadline->term - $days;
                 $futureDay = Carbon::now()->addDays($diffDays)->format('d/m/Y');
@@ -167,24 +174,23 @@ class Controller extends \MapasCulturais\Controller
             } elseif ($days === (int)$accountabilityDeadline->term) {
                 $todayDate = Carbon::now()->format('d/m/Y');
                 $notificationMsg = "encerra-se hoje $todayDate";
-
+                // Última notificação para o refo
                 if ($notificationType === 'refo') {
                     $isLastNotification = true;
                 }
             } else {
+                // Para uso do RAIO, terceira situação
                 $diffDays = $days - (int)$accountabilityDeadline->term;
                 $lastDay = Carbon::now()->subDays($diffDays)->format('d/m/Y');
                 $notificationMsg = "encerrou-se no dia $lastDay";
                 $isLastNotification = true;
             }
-
             $this->rowSheet = $rowSheet;
-
-            $this->handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification);
+            $this->handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification, $days);
         }
     }
 
-    private function handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification)
+    private function handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification, $days)
     {
         $rowSheetId = $this->rowSheet->id;
         $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
@@ -195,11 +201,17 @@ class Controller extends \MapasCulturais\Controller
         $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($notificationType);
         $this->infosForNotifications[$rowSheetId]["is_last_notification"] = $isLastNotification;
         $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
+        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
+        $this->infosForNotifications[$rowSheetId]["days_current"] = $days;
     }
 
+    /**
+     * Altera o status para ão enviar mais notificações
+     * @return void
+     */
     public function POST_updateNotificationStatus()
     {
-        if (!isset($_SERVER['HTTP_ACCESS_TOKEN']) || $_SERVER['HTTP_ACCESS_TOKEN'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
+        if (!isset($this->data['access_token']) || $this->data['access_token'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
             $this->json(['message' => 'Acesso não autorizado'], 401);
         }
 
