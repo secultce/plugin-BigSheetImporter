@@ -1,7 +1,10 @@
 $(document).ready(() => {
     const importSheetElement = document.createElement('div');
     importSheetElement.setAttribute('id', 'bigsheet');
-    importSheetElement.setAttribute('style', 'display:none');
+    importSheetElement.classList.add('aba-content');
+    if (window.location.hash !== '#tab=bigsheet') {
+        importSheetElement.setAttribute('style', 'display:none');
+    }
     importSheetElement.innerHTML = '<div style="display: flex;">' +
         '<input type="file">' +
         '<button type="submit" disabled>Importar</button>' +
@@ -14,11 +17,17 @@ $(document).ready(() => {
     loadingElement.innerHTML = `<img src=${MapasCulturais.spinnerURL} alt="Carregando..." />`;
     importSheetElement.appendChild(loadingElement);
 
+    const validateButton = document.createElement('button');
+    validateButton.id = 'validateSpreadsheet';
+    validateButton.classList.add('btn', 'btn-default');
+    validateButton.innerText = 'Validar planilha';
+    importSheetElement.appendChild(validateButton);
+
     importSheetElement.querySelector('input').addEventListener('change', e => {
         if(e.target.files.length)
             importSheetElement.querySelector('button').disabled = false;
     });
-    importSheetElement.querySelector('button').addEventListener('click', async e => {
+    importSheetElement.querySelector('button[type=submit]').addEventListener('click', async e => {
         e.preventDefault();
         toggleLoading(e.target, loadingElement);
 
@@ -43,6 +52,52 @@ $(document).ready(() => {
             renderOccurrences(data.occurrences);
             renderSavedRows(data.rowsSaved);
 
+        } catch (e) {
+            console.error(e);
+        } finally {
+            toggleLoading(e.target, loadingElement);
+        }
+    });
+    validateButton.addEventListener('click', async e => {
+        e.preventDefault();
+        toggleLoading(e.target, loadingElement);
+
+        const url = MapasCulturais.createUrl('bigsheet', 'validateSpreadsheet');
+
+        const fileInput = importSheetElement.querySelector('input')
+        const file = fileInput.files[0];
+
+        fileInput.value = '';
+        const body = new FormData();
+        body.append('spreadsheet', file);
+
+        body.append('entity', 'Opinion');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: body,
+            });
+
+            if (!response.ok) {
+                const errorMessage = document.createElement('div');
+                errorMessage.id = 'errorMessage';
+                errorMessage.innerText = 'Houve um erro interno. Favor, tentar novamente.';
+                document.getElementById('bigsheet').appendChild(errorMessage);
+                console.error(response);
+                return;
+            }
+
+            const data = await response.json();
+            if (data?.occurrences.length > 0) {
+                renderOccurrences(data.occurrences);
+                return;
+            }
+
+            const noOccurrences = document.createElement('div');
+            noOccurrences.id = 'noOccurrences';
+            noOccurrences.innerText = 'Sem ocorrências encontradas na pré-validação.';
+            document.getElementById('bigsheet').appendChild(noOccurrences);
         } catch (e) {
             console.error(e);
         } finally {
