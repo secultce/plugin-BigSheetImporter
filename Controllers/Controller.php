@@ -87,6 +87,23 @@ class Controller extends \MapasCulturais\Controller
         $this->json($data, 201);
     }
 
+    public function GET_history(int $limit = 50, int $page = 1): void
+    {
+        $app = App::getInstance();
+        if (!$app->user->isUserAdmin($app->user)) {
+            $this->json('', 403);
+            return;
+        }
+
+        try {
+            $sheets = $app->em->getRepository(Sheet::class)->findHistory($limit, $page);
+        } catch (\Exception $e) {
+            $this->json(['message' => 'Unexpected error'], 500);
+        }
+
+        $this->json($sheets);
+    }
+
     public function POST_validateSpreadsheet(): void
     {
         $this->requireAuthentication();

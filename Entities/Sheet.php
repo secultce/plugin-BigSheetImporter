@@ -7,7 +7,7 @@ use MapasCulturais\Entity;
 
 /**
  * @ORM\Table(name="sheet_import")
- * @ORM\Entity(repositoryClass="MapasCulturais\Repository")
+ * @ORM\Entity(repositoryClass="BigSheetImporter\Repositories\SheetRepository")
  */
 class Sheet extends Entity
 {
@@ -55,7 +55,7 @@ class Sheet extends Entity
     protected $occurrences;
 
     /** @override  */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         $serialized = parent::jsonSerialize();
         $userId = $serialized['user']->id;

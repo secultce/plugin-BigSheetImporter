@@ -106,7 +106,27 @@ $(document).ready(() => {
     });
 
     document.getElementById('avaliacoes').parentElement.appendChild(importSheetElement);
+
+    fetch(MapasCulturais.createUrl('bigsheet', 'history'))
+        .then(response => response.json())
+        .then(data => renderImportHistory(data))
+        .catch(err => console.error(err));
 });
+
+const renderImportHistory = history => {
+    document.getElementById('importHistory')?.remove();
+    const importHistory = document.createElement('table');
+    importHistory.innerHTML = '<tr><th>id</th><th>Data da importação</th><th>Quantidade de linhas</th><th>Usuário</th>'
+
+    for (const item of history) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${item.id}</td><td>${item.date.date}</td><td>${item.rowsAmount}</td><td>${item.user.userName}</td>`;
+
+        importHistory.appendChild(tr);
+    }
+
+    document.getElementById('bigsheet').appendChild(importHistory);
+}
 
 const renderOccurrences = occurrences => {
     document.getElementById('occurrences')?.remove();
