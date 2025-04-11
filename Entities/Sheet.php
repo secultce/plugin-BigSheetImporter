@@ -55,7 +55,7 @@ class Sheet extends Entity
     protected $occurrences;
 
     /** @override  */
-    public function jsonSerialize(): array
+    public function jsonSerialize()
     {
         $serialized = parent::jsonSerialize();
         $userId = $serialized['user']->id;

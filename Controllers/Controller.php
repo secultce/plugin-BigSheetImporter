@@ -112,10 +112,9 @@ class Controller extends \MapasCulturais\Controller
         $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
 
         $validate = SheetService::validate($xlsData);
-        $occurrences = SheetService::createOccurrences($validate->invalidData, new Sheet());
 
         $this->json([
-            'occurrences' => $occurrences,
+            'occurrences' => $validate->invalidData,
         ]);
     }
 

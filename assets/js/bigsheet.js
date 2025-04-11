@@ -7,7 +7,7 @@ $(document).ready(() => {
     }
     importSheetElement.innerHTML = '<div style="display: flex;">' +
         '<input type="file">' +
-        '<button type="submit" disabled>Importar</button>' +
+        '<button type="submit" data-text="Importar" disabled>Importar</button>' +
         '<a href="/bigsheet/templateSheet" class="btn btn-default" style="margin-left: auto;">Baixar modelo</a>' +
     '</div>';
 
@@ -21,6 +21,7 @@ $(document).ready(() => {
     validateButton.id = 'validateSpreadsheet';
     validateButton.classList.add('btn', 'btn-default');
     validateButton.innerText = 'Validar planilha';
+    validateButton.dataset.text = 'Validar planilha';
     importSheetElement.appendChild(validateButton);
 
     importSheetElement.querySelector('input').addEventListener('change', e => {
@@ -61,6 +62,9 @@ $(document).ready(() => {
     validateButton.addEventListener('click', async e => {
         e.preventDefault();
         toggleLoading(e.target, loadingElement);
+        document.getElementById('occurrences')?.remove();
+        document.getElementById('errorMessage')?.remove();
+        document.getElementById('noOccurrences')?.remove();
 
         const url = MapasCulturais.createUrl('bigsheet', 'validateSpreadsheet');
 
@@ -83,7 +87,7 @@ $(document).ready(() => {
                 const errorMessage = document.createElement('div');
                 errorMessage.id = 'errorMessage';
                 errorMessage.innerText = 'Houve um erro interno. Favor, tentar novamente.';
-                document.getElementById('bigsheet').appendChild(errorMessage);
+                validateButton.after(errorMessage);
                 console.error(response);
                 return;
             }
@@ -96,8 +100,9 @@ $(document).ready(() => {
 
             const noOccurrences = document.createElement('div');
             noOccurrences.id = 'noOccurrences';
-            noOccurrences.innerText = 'Sem ocorrências encontradas na pré-validação.';
-            document.getElementById('bigsheet').appendChild(noOccurrences);
+            noOccurrences.classList.add('alert', 'success');
+            noOccurrences.innerText = 'Sem problemas de formatação encontrados na validação da planilha.';
+            validateButton.after(noOccurrences);
         } catch (e) {
             console.error(e);
         } finally {
@@ -116,6 +121,7 @@ $(document).ready(() => {
 const renderImportHistory = history => {
     document.getElementById('importHistory')?.remove();
     const importHistory = document.createElement('table');
+    importHistory.id = 'importHistory';
     importHistory.innerHTML = '<tr><th>id</th><th>Data da importação</th><th>Quantidade de linhas</th><th>Usuário</th>'
 
     for (const item of history) {
@@ -130,6 +136,7 @@ const renderImportHistory = history => {
 
 const renderOccurrences = occurrences => {
     document.getElementById('occurrences')?.remove();
+    document.getElementById('importHistory')?.remove();
     const occurrencesElement = document.createElement('div');
     occurrencesElement.setAttribute('id', 'occurrences');
     occurrencesElement.innerHTML = '<h2>Ocorrências</h2>';
@@ -146,13 +153,20 @@ const renderOccurrences = occurrences => {
         const occurrenceElement = document.createElement('div');
         occurrenceElement.style.color = 'red';
         occurrenceElement.innerHTML = `<strong>${occurrence.columnIndex+occurrence.rowIndex}</strong>
-            - ${occurrence.occurrence} <span style="color:#042f2b">("${occurrence.givenValue}")</span>`;
+            - ${occurrence.occurrence ?? occurrence.message} 
+            <span style="color:#042f2b">("${occurrence.givenValue ?? occurrence.value}")</span>`;
         rowLegendElement.appendChild(occurrenceElement);
 
         lastRowIndex = occurrence.rowIndex;
     });
     occurrencesElement.appendChild(occurrencesList);
-    document.getElementById('bigsheet').appendChild(occurrencesElement);
+
+    const importHistory = document.getElementById('importHistory');
+    if (importHistory) {
+        importHistory.after(occurrencesElement);
+    } else {
+        document.getElementById('bigsheet').appendChild(occurrencesElement);
+    }
 };
 
 const renderSavedRows = rows => {
@@ -194,7 +208,7 @@ const toggleLoading = (buttonElement, loadingElement) => {
         loadingElement.style.display = 'block';
     } else {
         buttonElement.disabled = false;
-        buttonElement.innerHTML = 'Importar';
+        buttonElement.innerHTML = buttonElement.dataset.text;
         loadingElement.style.display = 'none';
     }
 };
