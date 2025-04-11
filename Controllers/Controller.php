@@ -87,6 +87,21 @@ class Controller extends \MapasCulturais\Controller
         $this->json($data, 201);
     }
 
+    public function POST_validateSpreadsheet(): void
+    {
+        $this->requireAuthentication();
+        $tmpFilename = $_FILES['spreadsheet']['tmp_name'];
+
+        $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
+
+        $validate = SheetService::validate($xlsData);
+        $occurrences = SheetService::createOccurrences($validate->invalidData, new Sheet());
+
+        $this->json([
+            'occurrences' => $occurrences,
+        ]);
+    }
+
     public function GET_templateSheet(): void
     {
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -168,7 +183,7 @@ class Controller extends \MapasCulturais\Controller
     }
 
     /**
-     * Chega os dias das últimas notificações para não enviar em duplicidade
+     * Checagem dos dias das últimas notificações para não enviar em duplicidade
      * @param mixed $terms
      * @param mixed $days
      * @param mixed $rowSheet
@@ -222,7 +237,7 @@ class Controller extends \MapasCulturais\Controller
     }
 
     /**
-     * Altera o status para ão enviar mais notificações
+     * Altera o status para não enviar mais notificações
      * @return void
      */
     public function POST_updateNotificationStatus()
