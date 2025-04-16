@@ -7,6 +7,7 @@ use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use BigSheetImporter\Services\SheetService;
 use BigSheetImporter\Entities\Sheet;
 use Carbon\Carbon;
+use Doctrine\DBAL\Exception\ConstraintViolationException;
 use MapasCulturais\App;
 use MapasCulturais\i;
 use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
@@ -52,6 +53,23 @@ class Controller extends \MapasCulturais\Controller
             $app->em->rollback();
             $this->json(['error' => $e->getMessage()], 400);
             return;
+        } catch (ConstraintViolationException $e) {
+            $app->em->rollback();
+
+            $detail = explode('DETAIL:  ', $e->getMessage())[1] ?? $e->getMessage();
+            $pattern = '/Key \((.*?)\)=\((.*?)\) already exists\./';
+            $constraint = i::__('Erro desconhecido no banco de dados.');
+
+            if (preg_match($pattern, $detail, $matches)) {
+                [ , $field, $value ] = $matches;
+                $constraint = "Já existe um registro com o mesmo campo '$field': '$value'.";
+            }
+
+            $this->json([
+                'error' => i::__('Ocorreu um erro ao importar um dado.'),
+                'constraint' => $constraint,
+            ], 419);
+            return;
         } catch (\Exception $e) {
             $app->em->rollback();
             $this->json(['error' => $e->getMessage()], 500);
@@ -67,6 +85,37 @@ class Controller extends \MapasCulturais\Controller
         ];
 
         $this->json($data, 201);
+    }
+
+    public function GET_history(int $limit = 50, int $page = 1): void
+    {
+        $app = App::getInstance();
+        if (!$app->user->isUserAdmin($app->user)) {
+            $this->json('', 403);
+            return;
+        }
+
+        try {
+            $sheets = $app->em->getRepository(Sheet::class)->findHistory($limit, $page);
+        } catch (\Exception $e) {
+            $this->json(['message' => 'Unexpected error'], 500);
+        }
+
+        $this->json($sheets);
+    }
+
+    public function POST_validateSpreadsheet(): void
+    {
+        $this->requireAuthentication();
+        $tmpFilename = $_FILES['spreadsheet']['tmp_name'];
+
+        $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
+
+        $validate = SheetService::validate($xlsData);
+
+        $this->json([
+            'occurrences' => $validate->invalidData,
+        ]);
     }
 
     public function GET_templateSheet(): void
@@ -101,7 +150,6 @@ class Controller extends \MapasCulturais\Controller
 
     public function GET_infoForNotificationsAccountability()
     {
-        
         if (!isset($this->data['access_token']) || $this->data['access_token'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
             $this->json(['message' => 'Acesso não autorizado'], 401);
         }
@@ -151,7 +199,7 @@ class Controller extends \MapasCulturais\Controller
     }
 
     /**
-     * Chega os dias das últimas notificações para não enviar em duplicidade
+     * Checagem dos dias das últimas notificações para não enviar em duplicidade
      * @param mixed $terms
      * @param mixed $days
      * @param mixed $rowSheet
@@ -201,12 +249,11 @@ class Controller extends \MapasCulturais\Controller
         $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($notificationType);
         $this->infosForNotifications[$rowSheetId]["is_last_notification"] = $isLastNotification;
         $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
-        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
         $this->infosForNotifications[$rowSheetId]["days_current"] = $days;
     }
 
     /**
-     * Altera o status para ão enviar mais notificações
+     * Altera o status para não enviar mais notificações
      * @return void
      */
     public function POST_updateNotificationStatus()

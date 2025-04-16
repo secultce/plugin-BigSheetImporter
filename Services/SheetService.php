@@ -47,7 +47,7 @@ final class SheetService
     public static function validateRow(array $row, int $rowIndex, array $invalidData = []): array
     {
         if (count($row) !== 21) {
-            throw new InvalidSheetFormat('Número de colunas inválido', 400);
+            throw new InvalidSheetFormat('Número de colunas inválido', 0);
         }
 
         /** Altera células vazias para NULL */
