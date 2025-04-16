@@ -7,7 +7,7 @@ use MapasCulturais\Entity;
 
 /**
  * @ORM\Table(name="sheet_import")
- * @ORM\Entity(repositoryClass="MapasCulturais\Repository")
+ * @ORM\Entity(repositoryClass="BigSheetImporter\Repositories\SheetRepository")
  */
 class Sheet extends Entity
 {

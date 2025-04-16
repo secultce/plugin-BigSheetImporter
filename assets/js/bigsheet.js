@@ -1,10 +1,13 @@
 $(document).ready(() => {
     const importSheetElement = document.createElement('div');
     importSheetElement.setAttribute('id', 'bigsheet');
-    importSheetElement.setAttribute('style', 'display:none');
+    importSheetElement.classList.add('aba-content');
+    if (window.location.hash !== '#tab=bigsheet') {
+        importSheetElement.setAttribute('style', 'display:none');
+    }
     importSheetElement.innerHTML = '<div style="display: flex;">' +
         '<input type="file">' +
-        '<button type="submit" disabled>Importar</button>' +
+        '<button type="submit" data-text="Importar" disabled>Importar</button>' +
         '<a href="/bigsheet/templateSheet" class="btn btn-default" style="margin-left: auto;">Baixar modelo</a>' +
     '</div>';
 
@@ -14,11 +17,18 @@ $(document).ready(() => {
     loadingElement.innerHTML = `<img src=${MapasCulturais.spinnerURL} alt="Carregando..." />`;
     importSheetElement.appendChild(loadingElement);
 
+    const validateButton = document.createElement('button');
+    validateButton.id = 'validateSpreadsheet';
+    validateButton.classList.add('btn', 'btn-default');
+    validateButton.innerText = 'Validar planilha';
+    validateButton.dataset.text = 'Validar planilha';
+    importSheetElement.appendChild(validateButton);
+
     importSheetElement.querySelector('input').addEventListener('change', e => {
         if(e.target.files.length)
             importSheetElement.querySelector('button').disabled = false;
     });
-    importSheetElement.querySelector('button').addEventListener('click', async e => {
+    importSheetElement.querySelector('button[type=submit]').addEventListener('click', async e => {
         e.preventDefault();
         toggleLoading(e.target, loadingElement);
 
@@ -49,12 +59,84 @@ $(document).ready(() => {
             toggleLoading(e.target, loadingElement);
         }
     });
+    validateButton.addEventListener('click', async e => {
+        e.preventDefault();
+        toggleLoading(e.target, loadingElement);
+        document.getElementById('occurrences')?.remove();
+        document.getElementById('errorMessage')?.remove();
+        document.getElementById('noOccurrences')?.remove();
+
+        const url = MapasCulturais.createUrl('bigsheet', 'validateSpreadsheet');
+
+        const fileInput = importSheetElement.querySelector('input')
+        const file = fileInput.files[0];
+
+        fileInput.value = '';
+        const body = new FormData();
+        body.append('spreadsheet', file);
+
+        body.append('entity', 'Opinion');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: body,
+            });
+
+            if (!response.ok) {
+                const errorMessage = document.createElement('div');
+                errorMessage.id = 'errorMessage';
+                errorMessage.innerText = 'Houve um erro interno. Favor, tentar novamente.';
+                validateButton.after(errorMessage);
+                console.error(response);
+                return;
+            }
+
+            const data = await response.json();
+            if (data?.occurrences.length > 0) {
+                renderOccurrences(data.occurrences);
+                return;
+            }
+
+            const noOccurrences = document.createElement('div');
+            noOccurrences.id = 'noOccurrences';
+            noOccurrences.classList.add('alert', 'success');
+            noOccurrences.innerText = 'Sem problemas de formatação encontrados na validação da planilha.';
+            validateButton.after(noOccurrences);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            toggleLoading(e.target, loadingElement);
+        }
+    });
 
     document.getElementById('avaliacoes').parentElement.appendChild(importSheetElement);
+
+    fetch(MapasCulturais.createUrl('bigsheet', 'history'))
+        .then(response => response.json())
+        .then(data => renderImportHistory(data))
+        .catch(err => console.error(err));
 });
+
+const renderImportHistory = history => {
+    document.getElementById('importHistory')?.remove();
+    const importHistory = document.createElement('table');
+    importHistory.id = 'importHistory';
+    importHistory.innerHTML = '<tr><th>id</th><th>Data da importação</th><th>Quantidade de linhas</th><th>Usuário</th>'
+
+    for (const item of history) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${item.id}</td><td>${item.date.date}</td><td>${item.rowsAmount}</td><td>${item.user.userName}</td>`;
+
+        importHistory.appendChild(tr);
+    }
+
+    document.getElementById('bigsheet').appendChild(importHistory);
+}
 
 const renderOccurrences = occurrences => {
     document.getElementById('occurrences')?.remove();
+    document.getElementById('importHistory')?.remove();
     const occurrencesElement = document.createElement('div');
     occurrencesElement.setAttribute('id', 'occurrences');
     occurrencesElement.innerHTML = '<h2>Ocorrências</h2>';
@@ -71,13 +153,20 @@ const renderOccurrences = occurrences => {
         const occurrenceElement = document.createElement('div');
         occurrenceElement.style.color = 'red';
         occurrenceElement.innerHTML = `<strong>${occurrence.columnIndex+occurrence.rowIndex}</strong>
-            - ${occurrence.occurrence} <span style="color:#042f2b">("${occurrence.givenValue}")</span>`;
+            - ${occurrence.occurrence ?? occurrence.message} 
+            <span style="color:#042f2b">("${occurrence.givenValue ?? occurrence.value}")</span>`;
         rowLegendElement.appendChild(occurrenceElement);
 
         lastRowIndex = occurrence.rowIndex;
     });
     occurrencesElement.appendChild(occurrencesList);
-    document.getElementById('bigsheet').appendChild(occurrencesElement);
+
+    const importHistory = document.getElementById('importHistory');
+    if (importHistory) {
+        importHistory.after(occurrencesElement);
+    } else {
+        document.getElementById('bigsheet').appendChild(occurrencesElement);
+    }
 };
 
 const renderSavedRows = rows => {
@@ -119,7 +208,7 @@ const toggleLoading = (buttonElement, loadingElement) => {
         loadingElement.style.display = 'block';
     } else {
         buttonElement.disabled = false;
-        buttonElement.innerHTML = 'Importar';
+        buttonElement.innerHTML = buttonElement.dataset.text;
         loadingElement.style.display = 'none';
     }
 };
