@@ -51,6 +51,8 @@ r[row_sheet_import]{
     text          fiscal_name
     char(14)      fiscal_cpf
     varchar(12)   fiscal_registry
+    varchar(100)  instrument
+    varchar(100)  municipality
 }
 ```
 

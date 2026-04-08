@@ -71,9 +71,13 @@ return [
         ");
     },
     'insert deadline for submitting accountability in term table' => function () {
-        __exec("INSERT INTO term (taxonomy, term, description) VALUES 
+        __exec("INSERT INTO term (taxonomy, term, description) VALUES
             ('accountability_deadline', '90', 'raio'),
             ('accountability_deadline', '60', 'refo')
         ");
+    },
+    'add instrument and municipality columns to row_sheet_import table' => function () {
+        __exec("ALTER TABLE row_sheet_import ADD COLUMN instrument VARCHAR(100)");
+        __exec("ALTER TABLE row_sheet_import ADD COLUMN municipality VARCHAR(100)");
     },
 ];

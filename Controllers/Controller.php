@@ -95,6 +95,8 @@ class Controller extends \MapasCulturais\Controller
             i::__('NOME DO FISCAL'),
             i::__('CPF DO FISCAL'),
             i::__('MATRÍCULA DO FISCAL'),
+            i::__('INSTRUMENTO'),
+            i::__('MUNICIPIO'),
         ]], 'Modelo de Planilha')->download();
         exit();
     }
