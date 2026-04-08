@@ -104,14 +104,14 @@ class Controller extends \MapasCulturais\Controller
 
     public function GET_infoForNotificationsAccountability()
     {
-        
+
         if (!isset($this->data['access_token']) || $this->data['access_token'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
             $this->json(['message' => 'Acesso não autorizado'], 401);
         }
-       
+
         $this->setInfoRaioNotifications();
         $this->setInfoRefoNotifications();
-       
+
         $this->json(array_values($this->infosForNotifications));
     }
 
@@ -167,7 +167,7 @@ class Controller extends \MapasCulturais\Controller
         $hasTerm = array_filter($terms, function ($term) use ($days) {
             return (int)$term->term === $days;
         });
-       
+
         if ($hasTerm) {
             $isLastNotification = false;
             if ($days < (int)$accountabilityDeadline->term) {
@@ -217,32 +217,61 @@ class Controller extends \MapasCulturais\Controller
             return;
         }
 
+        $limit  = isset($this->data['@limit'])  ? max(1, (int) $this->data['@limit'])  : 25;
+        $page   = isset($this->data['@page'])   ? max(1, (int) $this->data['@page'])   : 1;
+        $offset = isset($this->data['@offset']) ? max(0, (int) $this->data['@offset']) : $limit * ($page - 1);
+
         $diligences = $app->repo(Diligence::class)->findBy([
             'situation' => [
                 Diligence::STATUS_OPEN,
                 Diligence::STATUS_SEND,
                 Diligence::STATUS_ANSWERED,
+                Diligence::STATUS_COMPLETE,
             ],
         ]);
 
         $result = [];
         foreach ($diligences as $diligence) {
-            $registrationNumber = $diligence->registration->number;
+            $registrationId     = $diligence->registration->id;
+            $registrationNumber = 'on-' . $registrationId;
+
+            if (isset($result[$registrationNumber])) {
+                continue;
+            }
 
             $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registrationNumber]);
-
             if (!$rowSheet) {
                 continue;
             }
 
-            $result[] = [
+            $result[$registrationNumber] = [
                 'registration_number' => $registrationNumber,
-                'diligence_situation' => $diligence->situation,
-                'row_sheet'           => $rowSheet,
+                'diligence_situation' => $diligence->status,
+                'row_sheet' => [
+                    'municipality' => $rowSheet->municipality,
+                    'instrument'   => $rowSheet->instrument,
+                ],
+                'agent' => [
+                    'name' => $diligence->agent->name,
+                    'cpf'  => $diligence->agent->getMetadata('cpf'),
+                ],
             ];
         }
 
-        $this->json(array_values($result));
+        $result   = array_values($result);
+        $total    = count($result);
+        $numPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+        $page_result = array_slice($result, $offset, $limit);
+
+        $this->json([
+            'data' => $page_result,
+            'meta' => [
+                'total'    => $total,
+                'page'     => $page,
+                'limit'    => $limit,
+                'numPages' => $numPages,
+            ],
+        ]);
     }
 
     /**
