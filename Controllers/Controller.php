@@ -7,6 +7,7 @@ use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use BigSheetImporter\Services\SheetService;
 use BigSheetImporter\Entities\Sheet;
 use Carbon\Carbon;
+use Diligence\Entities\Diligence;
 use MapasCulturais\App;
 use MapasCulturais\i;
 use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
@@ -205,6 +206,43 @@ class Controller extends \MapasCulturais\Controller
         $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
         $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
         $this->infosForNotifications[$rowSheetId]["days_current"] = $days;
+    }
+
+    public function GET_registrationsInDiligence(): void
+    {
+        $app = App::i();
+
+        if (!$app->request()->headers('MapasSDK-REQUEST')) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+            return;
+        }
+
+        $diligences = $app->repo(Diligence::class)->findBy([
+            'situation' => [
+                Diligence::STATUS_OPEN,
+                Diligence::STATUS_SEND,
+                Diligence::STATUS_ANSWERED,
+            ],
+        ]);
+
+        $result = [];
+        foreach ($diligences as $diligence) {
+            $registrationNumber = $diligence->registration->number;
+
+            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registrationNumber]);
+
+            if (!$rowSheet) {
+                continue;
+            }
+
+            $result[] = [
+                'registration_number' => $registrationNumber,
+                'diligence_situation' => $diligence->situation,
+                'row_sheet'           => $rowSheet,
+            ];
+        }
+
+        $this->json(array_values($result));
     }
 
     /**
