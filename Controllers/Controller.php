@@ -11,6 +11,7 @@ use Diligence\Entities\Diligence;
 use MapasCulturais\App;
 use MapasCulturais\i;
 use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
+use MapasCulturais\Services\SentryService;
 
 class Controller extends \MapasCulturais\Controller
 {
@@ -41,6 +42,7 @@ class Controller extends \MapasCulturais\Controller
             $sheet->save(true);
 
             $validate = SheetService::validate($xlsData);
+
             $sheet->occurrences = SheetService::createOccurrences($validate->invalidData, $sheet);
             $sheet->save(true);
 
@@ -53,8 +55,9 @@ class Controller extends \MapasCulturais\Controller
             $app->em->rollback();
             $this->json(['error' => $e->getMessage()], 400);
             return;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $app->em->rollback();
+            SentryService::captureExceptions($e);
             $this->json(['error' => $e->getMessage()], 500);
             return;
         } finally {
@@ -196,7 +199,7 @@ class Controller extends \MapasCulturais\Controller
     private function handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification, $days)
     {
         $rowSheetId = $this->rowSheet->id;
-        $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
+        $registration = App::i()->repo('Registration')->findOneBy(['id' => $this->rowSheet->registrationNumber]);
 
         $this->infosForNotifications[$rowSheetId]["registration_number"] = $registration->number;
         $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
@@ -232,24 +235,26 @@ class Controller extends \MapasCulturais\Controller
 
         $result = [];
         foreach ($diligences as $diligence) {
-            $registrationId     = $diligence->registration->id;
-            $registrationNumber = 'on-' . $registrationId;
+            $registration = $diligence->registration;
+            $registrationId = $registration->id;
 
-            if (isset($result[$registrationNumber])) {
+            if (isset($result[$registrationId])) {
                 continue;
             }
 
-            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registrationNumber]);
+            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registrationId])
+                ?: $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registration->number]);
             if (!$rowSheet) {
                 continue;
             }
 
-            $result[$registrationNumber] = [
-                'registration_number' => $registrationNumber,
+            $result[$registrationId] = [
+                'registration_number' => $registration->number,
                 'diligence_situation' => $diligence->status,
                 'row_sheet' => [
                     'municipality' => $rowSheet->municipality,
                     'instrument'   => $rowSheet->instrument,
+                    'sacc'        => $rowSheet->saccNumber,
                 ],
                 'agent' => [
                     'name' => $diligence->agent->name,
@@ -265,6 +270,75 @@ class Controller extends \MapasCulturais\Controller
 
         $this->json([
             'data' => $page_result,
+            'meta' => [
+                'total'    => $total,
+                'page'     => $page,
+                'limit'    => $limit,
+                'numPages' => $numPages,
+            ],
+        ]);
+    }
+
+    public function GET_opportunitiesWithDiligence(): void
+    {
+        $app = App::i();
+
+        if (!$app->request()->headers('MapasSDK-REQUEST')) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+            return;
+        }
+
+        $limit  = isset($this->data['@limit'])  ? max(1, (int) $this->data['@limit'])  : 25;
+        $page   = isset($this->data['@page'])   ? max(1, (int) $this->data['@page'])   : 1;
+        $offset = isset($this->data['@offset']) ? max(0, (int) $this->data['@offset']) : $limit * ($page - 1);
+
+        $conn = $app->em->getConnection();
+
+        $sql = "
+             SELECT
+                o.id,
+                o2.name             AS oportunidade_pai,
+                o.name              AS nome,
+                p.name              AS projeto,
+                a.name              AS nome_agent,
+                r.id                AS inscricao_id,
+                r.number            AS inscricao_numero,
+                r.status            AS inscricao_status,
+                ra.name             AS inscricao_agente,
+                am.value            AS inscricao_agente_cpf,
+                rsi.sacc_number     AS sacc_number,
+                rsi.instrument      AS instrument,
+                rsi.municipality    AS municipality
+            FROM opportunity o
+            JOIN opportunity_meta om ON o.id = om.object_id
+            JOIN agent a              ON o.agent_id = a.id
+            JOIN opportunity o2       ON o.parent_id = o2.id
+            JOIN project p            ON o.object_id = p.id
+            JOIN seal_relation sr     ON sr.object_id = p.id
+                                     AND sr.object_type = 'MapasCulturais\\Entities\\Project'
+                                     AND sr.seal_id = 16
+                                     AND sr.status >= 0
+            LEFT JOIN registration r   ON r.opportunity_id = o.id
+            LEFT JOIN agent ra         ON ra.id = r.agent_id
+            LEFT JOIN agent_meta am    ON am.object_id = ra.id AND am.key = 'cpf'
+            LEFT JOIN row_sheet_import rsi ON rsi.registration_number = r.number
+                                          OR rsi.registration_number = r.id::varchar
+            WHERE om.key = 'use_diligence'
+              AND om.value = 'Sim'
+              AND (a.parent_id = 5975 OR a.id = 5975)
+              AND o.status <> -10
+              AND o.parent_id IS NOT NULL
+              AND o.id <> 6774
+            ORDER BY o.id DESC, r.id ASC
+        ";
+
+        $rows     = $conn->fetchAllAssociative($sql);
+        $total    = count($rows);
+        $numPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+        $pageData = array_slice($rows, $offset, $limit);
+
+        $this->json([
+            'data' => $pageData,
             'meta' => [
                 'total'    => $total,
                 'page'     => $page,

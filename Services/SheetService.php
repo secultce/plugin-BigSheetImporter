@@ -56,6 +56,7 @@ final class SheetService
         }, $row);
 
         $app = App::getInstance();
+
         if (empty($app->repo(Registration::class)->findBy(['number' => $row[0]]))) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
@@ -64,6 +65,7 @@ final class SheetService
                 $row[0]
             );
         }
+
         if ($row[1] !== null && !preg_match('/\d{5}\.\d{6}\/\d{4}-\d{2}/', $row[1])) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
@@ -125,7 +127,11 @@ final class SheetService
             }, array_keys($row), array_values($row));
 
             $app = App::getInstance();
-            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $row[0]]) ?: new RowSheet();
+            $row = array_values($row);
+            $registration = $app->repo(Registration::class)->findOneBy(['number' => $row[0]]);
+            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registration->id])
+                ?: ($row[1] ? $app->repo(RowSheet::class)->findOneBy(['processNumber' => $row[1]]) : null)
+                ?: new RowSheet();
             $rowSheet->registrationNumber = $row[0];
             array_shift($row);
             $rowSheet->setRowSheet(...$row);

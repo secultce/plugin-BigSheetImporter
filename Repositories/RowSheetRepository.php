@@ -16,7 +16,7 @@ class RowSheetRepository extends Repository
             return $rowSheetObject;
 
         $rowSheetObject->registration = $this->_em->getRepository(Registration::class)
-            ->findBy(['number' => $rowSheetObject->registrationNumber]);
+            ->findOneBy(['id' => $rowSheetObject->registrationNumber]);
 
         return $rowSheetObject;
     }
@@ -30,7 +30,7 @@ class RowSheetRepository extends Repository
             return $rowSheetObject;
 
         $rowSheetObject->registration = $this->_em->getRepository(Registration::class)
-            ->findBy(['number' => $rowSheetObject->registrationNumber]);
+            ->findOneBy(['id' => $rowSheetObject->registrationNumber]);
 
         return $rowSheetObject;
     }
@@ -41,7 +41,7 @@ class RowSheetRepository extends Repository
         $rowSheetCollection = parent::findBy($criteria, $orderBy, $limit, $offset);
         foreach ($rowSheetCollection as $rowSheetObject) {
             $rowSheetObject->registration = $this->_em->getRepository(Registration::class)
-                ->findBy(['number' => $rowSheetObject->registrationNumber]);
+                ->findOneBy(['id' => $rowSheetObject->registrationNumber]);
         }
         return $rowSheetCollection;
     }

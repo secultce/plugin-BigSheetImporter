@@ -80,4 +80,7 @@ return [
         __exec("ALTER TABLE row_sheet_import ADD COLUMN instrument VARCHAR(100)");
         __exec("ALTER TABLE row_sheet_import ADD COLUMN municipality VARCHAR(100)");
     },
+    'change trasfer_value column type from money to numeric in row_sheet_import table' => function () {
+        __exec("ALTER TABLE row_sheet_import ALTER COLUMN trasfer_value TYPE NUMERIC(15,2) USING trasfer_value::numeric");
+    },
 ];
