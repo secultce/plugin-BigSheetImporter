@@ -39,7 +39,9 @@ $(document).ready(() => {
             const data = await response.json();
 
             if (!response.ok) {
-                McMessages.error('Erro ao importar planilha', 'Verifique todos os dados inclusive o número de processo. ');
+
+                McMessages.error('Erro ao importar planilha', 'Verifique todos os dados inclusive ' +
+                    'o número de processo. \n'+data.error);
                 return;
             }
 

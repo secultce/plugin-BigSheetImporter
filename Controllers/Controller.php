@@ -25,6 +25,11 @@ class Controller extends \MapasCulturais\Controller
 
         $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
 
+        if (!$xlsData) {
+            $this->json(['error' => i::__('Não foi possível ler a planilha. Verifique se o arquivo é um .xlsx ou .xls válido.')], 400);
+            return;
+        }
+
         $app = App::getInstance();
         if (!$app->user->isUserAdmin($app->user)) {
             $this->json('', 403);

@@ -117,11 +117,19 @@ final class SheetService
                 continue;
 
             $row = array_map(function (int $k, $cell) {
-                if($cell === '')
+                if($cell === '' || $cell === null)
                     return null;
 
+                // saccNumber (k=2) e termNumber (k=3): Excel pode retornar float como "1234.0"
+                if($k === 2 || $k === 3)
+                    return (int) $cell;
+
+                // trasferValue (k=5): Excel pode retornar string formatada como "1.500,00"
+                if($k === 5)
+                    return (float) str_replace(['.', ','], ['', '.'], (string) $cell);
+
                 if($k > 5 && $k < 18)
-                    $cell = self::createDateTimeFromString($cell);
+                    $cell = self::createDateTimeFromString((string) $cell);
 
                 return $cell;
             }, array_keys($row), array_values($row));
@@ -132,7 +140,7 @@ final class SheetService
             $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registration->id])
                 ?: ($row[1] ? $app->repo(RowSheet::class)->findOneBy(['processNumber' => $row[1]]) : null)
                 ?: new RowSheet();
-            $rowSheet->registrationNumber = $row[0];
+            $rowSheet->registrationNumber = $registration->id;
             array_shift($row);
             $rowSheet->setRowSheet(...$row);
             $rowSheet->sheet = $sheet;

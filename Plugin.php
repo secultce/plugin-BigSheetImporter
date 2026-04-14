@@ -29,6 +29,7 @@ class Plugin extends \MapasCulturais\Plugin
          * 'list'.
          */
         $this->app->hook('routes.filter', function (&$controller_id, &$action_name) {
+            // pc/lista → bigsheet/opportunitiesWithDiligence
             // 'lista' é resolvido para 'list' pelo alias de actions antes deste hook disparar
             if ($controller_id === 'pc' && $action_name === 'list') {
                 $controller_id = 'bigsheet';
