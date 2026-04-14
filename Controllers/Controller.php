@@ -204,7 +204,7 @@ class Controller extends \MapasCulturais\Controller
     private function handleInfoNotifications($notificationMsg, $notificationType, $isLastNotification, $days)
     {
         $rowSheetId = $this->rowSheet->id;
-        $registration = App::i()->repo('Registration')->findOneBy(['id' => $this->rowSheet->registrationNumber]);
+        $registration = App::i()->repo('Registration')->findOneBy(['number' => $this->rowSheet->registrationNumber]);
 
         $this->infosForNotifications[$rowSheetId]["registration_number"] = $registration->number;
         $this->infosForNotifications[$rowSheetId]["agent_name"] = $registration->owner->name;
@@ -313,7 +313,8 @@ class Controller extends \MapasCulturais\Controller
                 am.value            AS inscricao_agente_cpf,
                 rsi.sacc_number     AS sacc_number,
                 rsi.instrument      AS instrument,
-                rsi.municipality    AS municipality
+                rsi.municipality    AS municipality,
+                s.name              AS tipo_projeto
             FROM opportunity o
             JOIN opportunity_meta om ON o.id = om.object_id
             JOIN agent a              ON o.agent_id = a.id
@@ -323,6 +324,7 @@ class Controller extends \MapasCulturais\Controller
                                      AND sr.object_type = 'MapasCulturais\\Entities\\Project'
                                      AND sr.seal_id = 16
                                      AND sr.status >= 0
+            JOIN seal s               ON s.id = sr.seal_id
             LEFT JOIN registration r   ON r.opportunity_id = o.id
             LEFT JOIN agent ra         ON ra.id = r.agent_id
             LEFT JOIN agent_meta am    ON am.object_id = ra.id AND am.key = 'cpf'
