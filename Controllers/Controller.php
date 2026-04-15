@@ -297,7 +297,11 @@ class Controller extends \MapasCulturais\Controller
         $page   = isset($this->data['@page'])   ? max(1, (int) $this->data['@page'])   : 1;
         $offset = isset($this->data['@offset']) ? max(0, (int) $this->data['@offset']) : $limit * ($page - 1);
 
+        $sacc = isset($this->data['sacc']) ? (int) $this->data['sacc'] : null;
+
         $conn = $app->em->getConnection();
+
+        $saccFilter = $sacc ? 'AND rsi.sacc_number = :sacc' : '';
 
         $sql = "
              SELECT
@@ -336,10 +340,13 @@ class Controller extends \MapasCulturais\Controller
               AND o.status <> -10
               AND o.parent_id IS NOT NULL
               AND o.id <> 6774
+              $saccFilter
             ORDER BY o.id DESC, r.id ASC
         ";
 
-        $rows     = $conn->fetchAllAssociative($sql);
+        $params = $sacc ? ['sacc' => $sacc] : [];
+
+        $rows     = $conn->fetchAllAssociative($sql, $params);
         $total    = count($rows);
         $numPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
         $pageData = array_slice($rows, $offset, $limit);
