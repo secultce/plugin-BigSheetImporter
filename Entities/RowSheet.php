@@ -147,6 +147,20 @@ class RowSheet extends Entity
     protected $fiscalRegistry;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(name="instrument", type="string", length=100, nullable=true)
+     */
+    protected $instrument;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="municipality", type="string", length=100, nullable=true)
+     */
+    protected $municipality;
+
+    /**
      * @var integer
      *
      * @ORM\Column(name="notification_status", type="smallint", nullable=false)
@@ -173,7 +187,9 @@ class RowSheet extends Entity
         ?\DateTime $signedTermValidityEndDate = null,
         ?string $fiscalName = null,
         ?string $fiscalCpf = null,
-        ?string $fiscalRegistry = null
+        ?string $fiscalRegistry = null,
+        ?string $instrument = null,
+        ?string $municipality = null
     ): void {
         $this->processNumber = $processNumber;
         $this->saccNumber = $saccNumber;
@@ -195,6 +211,8 @@ class RowSheet extends Entity
         $this->fiscalCpf = $fiscalCpf;
         $this->fiscalName = $fiscalName;
         $this->fiscalRegistry = $fiscalRegistry;
+        $this->instrument = $instrument;
+        $this->municipality = $municipality;
     }
 
     /** @override */

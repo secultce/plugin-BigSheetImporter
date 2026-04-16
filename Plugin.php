@@ -21,6 +21,21 @@ class Plugin extends \MapasCulturais\Plugin
             $plugin->tabImport();
         });
 
+        /**
+         * Este hook dispara a cada request, logo antes do App resolver qual
+         * controller/action chamar, e recebe as variáveis por referência. O
+         * único detalhe é que o alias 'lista' => 'list' do routes.php é
+         * aplicado antes do hook, então a verificação checa action_name ===
+         * 'list'.
+         */
+        $this->app->hook('routes.filter', function (&$controller_id, &$action_name) {
+            // pc/lista → bigsheet/opportunitiesWithDiligence
+            // 'lista' é resolvido para 'list' pelo alias de actions antes deste hook disparar
+            if ($controller_id === 'pc' && $action_name === 'list') {
+                $controller_id = 'bigsheet';
+                $action_name = 'opportunitiesWithDiligence';
+            }
+        });
     }
 
     /**

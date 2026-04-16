@@ -46,8 +46,8 @@ final class SheetService
      */
     public static function validateRow(array $row, int $rowIndex, array $invalidData = []): array
     {
-        if (count($row) !== 21) {
-            throw new InvalidSheetFormat('Número de colunas inválido', 0);
+        if (count($row) !== 23) {
+            throw new InvalidSheetFormat('Número de colunas inválido', 400);
         }
 
         /** Altera células vazias para NULL */
@@ -56,6 +56,7 @@ final class SheetService
         }, $row);
 
         $app = App::getInstance();
+
         if (empty($app->repo(Registration::class)->findBy(['number' => $row[0]]))) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
@@ -64,6 +65,7 @@ final class SheetService
                 $row[0]
             );
         }
+
         if ($row[1] !== null && !preg_match('/\d{5}\.\d{6}\/\d{4}-\d{2}/', $row[1])) {
             $invalidData[] = self::newInvalidObject(
                 $rowIndex,
@@ -115,17 +117,29 @@ final class SheetService
                 continue;
 
             $row = array_map(function (int $k, $cell) {
-                if($cell === '')
+                if($cell === '' || $cell === null)
                     return null;
 
+                // saccNumber (k=2) e termNumber (k=3): Excel pode retornar float como "1234.0"
+                if($k === 2 || $k === 3)
+                    return (int) $cell;
+
+                // trasferValue (k=5): Excel pode retornar string formatada como "1.500,00"
+                if($k === 5)
+                    return (float) str_replace(['.', ','], ['', '.'], (string) $cell);
+
                 if($k > 5 && $k < 18)
-                    $cell = self::createDateTimeFromString($cell);
+                    $cell = self::createDateTimeFromString((string) $cell);
 
                 return $cell;
             }, array_keys($row), array_values($row));
 
             $app = App::getInstance();
-            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $row[0]]) ?: new RowSheet();
+            $row = array_values($row);
+            $registration = $app->repo(Registration::class)->findOneBy(['number' => $row[0]]);
+            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registration->id])
+                ?: ($row[1] ? $app->repo(RowSheet::class)->findOneBy(['processNumber' => $row[1]]) : null)
+                ?: new RowSheet();
             $rowSheet->registrationNumber = $row[0];
             array_shift($row);
             $rowSheet->setRowSheet(...$row);

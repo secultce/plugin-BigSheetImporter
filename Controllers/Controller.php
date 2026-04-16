@@ -7,10 +7,11 @@ use BigSheetImporter\Exceptions\InvalidSheetFormat;
 use BigSheetImporter\Services\SheetService;
 use BigSheetImporter\Entities\Sheet;
 use Carbon\Carbon;
-use Doctrine\DBAL\Exception\ConstraintViolationException;
+use Diligence\Entities\Diligence;
 use MapasCulturais\App;
 use MapasCulturais\i;
 use Shuchkin\{SimpleXLSX, SimpleXLS, SimpleXLSXGen};
+use MapasCulturais\Services\SentryService;
 
 class Controller extends \MapasCulturais\Controller
 {
@@ -23,6 +24,11 @@ class Controller extends \MapasCulturais\Controller
         $tmpFilename = $_FILES['spreadsheet']['tmp_name'];
 
         $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
+
+        if (!$xlsData) {
+            $this->json(['error' => i::__('Não foi possível ler a planilha. Verifique se o arquivo é um .xlsx ou .xls válido.')], 400);
+            return;
+        }
 
         $app = App::getInstance();
         if (!$app->user->isUserAdmin($app->user)) {
@@ -41,6 +47,7 @@ class Controller extends \MapasCulturais\Controller
             $sheet->save(true);
 
             $validate = SheetService::validate($xlsData);
+
             $sheet->occurrences = SheetService::createOccurrences($validate->invalidData, $sheet);
             $sheet->save(true);
 
@@ -53,25 +60,9 @@ class Controller extends \MapasCulturais\Controller
             $app->em->rollback();
             $this->json(['error' => $e->getMessage()], 400);
             return;
-        } catch (ConstraintViolationException $e) {
+        } catch (\Throwable $e) {
             $app->em->rollback();
-
-            $detail = explode('DETAIL:  ', $e->getMessage())[1] ?? $e->getMessage();
-            $pattern = '/Key \((.*?)\)=\((.*?)\) already exists\./';
-            $constraint = i::__('Erro desconhecido no banco de dados.');
-
-            if (preg_match($pattern, $detail, $matches)) {
-                [ , $field, $value ] = $matches;
-                $constraint = "Já existe um registro com o mesmo campo '$field': '$value'.";
-            }
-
-            $this->json([
-                'error' => i::__('Ocorreu um erro ao importar um dado.'),
-                'constraint' => $constraint,
-            ], 419);
-            return;
-        } catch (\Exception $e) {
-            $app->em->rollback();
+            SentryService::captureExceptions($e);
             $this->json(['error' => $e->getMessage()], 500);
             return;
         } finally {
@@ -85,37 +76,6 @@ class Controller extends \MapasCulturais\Controller
         ];
 
         $this->json($data, 201);
-    }
-
-    public function GET_history(int $limit = 50, int $page = 1): void
-    {
-        $app = App::getInstance();
-        if (!$app->user->isUserAdmin($app->user)) {
-            $this->json('', 403);
-            return;
-        }
-
-        try {
-            $sheets = $app->em->getRepository(Sheet::class)->findHistory($limit, $page);
-        } catch (\Exception $e) {
-            $this->json(['message' => 'Unexpected error'], 500);
-        }
-
-        $this->json($sheets);
-    }
-
-    public function POST_validateSpreadsheet(): void
-    {
-        $this->requireAuthentication();
-        $tmpFilename = $_FILES['spreadsheet']['tmp_name'];
-
-        $xlsData = SimpleXLSX::parse($tmpFilename) ?: SimpleXLS::parse($tmpFilename);
-
-        $validate = SheetService::validate($xlsData);
-
-        $this->json([
-            'occurrences' => $validate->invalidData,
-        ]);
     }
 
     public function GET_templateSheet(): void
@@ -144,19 +104,22 @@ class Controller extends \MapasCulturais\Controller
             i::__('NOME DO FISCAL'),
             i::__('CPF DO FISCAL'),
             i::__('MATRÍCULA DO FISCAL'),
+            i::__('INSTRUMENTO'),
+            i::__('MUNICIPIO'),
         ]], 'Modelo de Planilha')->download();
         exit();
     }
 
     public function GET_infoForNotificationsAccountability()
     {
+
         if (!isset($this->data['access_token']) || $this->data['access_token'] !== $_ENV['ACCESS_TOKEN_API_EMAIL']) {
             $this->json(['message' => 'Acesso não autorizado'], 401);
         }
-       
+
         $this->setInfoRaioNotifications();
         $this->setInfoRefoNotifications();
-       
+
         $this->json(array_values($this->infosForNotifications));
     }
 
@@ -199,7 +162,7 @@ class Controller extends \MapasCulturais\Controller
     }
 
     /**
-     * Checagem dos dias das últimas notificações para não enviar em duplicidade
+     * Checa os dias das últimas notificações para não enviar em duplicidade
      * @param mixed $terms
      * @param mixed $days
      * @param mixed $rowSheet
@@ -212,7 +175,7 @@ class Controller extends \MapasCulturais\Controller
         $hasTerm = array_filter($terms, function ($term) use ($days) {
             return (int)$term->term === $days;
         });
-       
+
         if ($hasTerm) {
             $isLastNotification = false;
             if ($days < (int)$accountabilityDeadline->term) {
@@ -249,11 +212,157 @@ class Controller extends \MapasCulturais\Controller
         $this->infosForNotifications[$rowSheetId]["notification_type"] = strtoupper($notificationType);
         $this->infosForNotifications[$rowSheetId]["is_last_notification"] = $isLastNotification;
         $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
+        $this->infosForNotifications[$rowSheetId]["notification_msg"] = $notificationMsg;
         $this->infosForNotifications[$rowSheetId]["days_current"] = $days;
     }
 
+    public function GET_registrationsInDiligence(): void
+    {
+        $app = App::i();
+
+        if (!$app->request()->headers('MapasSDK-REQUEST')) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+            return;
+        }
+
+        $limit  = isset($this->data['@limit'])  ? max(1, (int) $this->data['@limit'])  : 25;
+        $page   = isset($this->data['@page'])   ? max(1, (int) $this->data['@page'])   : 1;
+        $offset = isset($this->data['@offset']) ? max(0, (int) $this->data['@offset']) : $limit * ($page - 1);
+
+        $diligences = $app->repo(Diligence::class)->findBy([
+            'situation' => [
+                Diligence::STATUS_OPEN,
+                Diligence::STATUS_SEND,
+                Diligence::STATUS_ANSWERED,
+                Diligence::STATUS_COMPLETE,
+            ],
+        ]);
+
+        $result = [];
+        foreach ($diligences as $diligence) {
+            $registration = $diligence->registration;
+            $registrationId = $registration->id;
+
+            if (isset($result[$registrationId])) {
+                continue;
+            }
+
+            $rowSheet = $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registrationId])
+                ?: $app->repo(RowSheet::class)->findOneBy(['registrationNumber' => $registration->number]);
+            if (!$rowSheet) {
+                continue;
+            }
+
+            $result[$registrationId] = [
+                'registration_number' => $registration->number,
+                'diligence_situation' => $diligence->status,
+                'row_sheet' => [
+                    'municipality' => $rowSheet->municipality,
+                    'instrument'   => $rowSheet->instrument,
+                    'sacc'        => $rowSheet->saccNumber,
+                ],
+                'agent' => [
+                    'name' => $diligence->agent->name,
+                    'cpf'  => $diligence->agent->getMetadata('cpf'),
+                ],
+            ];
+        }
+
+        $result   = array_values($result);
+        $total    = count($result);
+        $numPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+        $page_result = array_slice($result, $offset, $limit);
+
+        $this->json([
+            'data' => $page_result,
+            'meta' => [
+                'total'    => $total,
+                'page'     => $page,
+                'limit'    => $limit,
+                'numPages' => $numPages,
+            ],
+        ]);
+    }
+
+    public function GET_opportunitiesWithDiligence(): void
+    {
+        $app = App::i();
+
+        if (!$app->request()->headers('MapasSDK-REQUEST')) {
+            $this->json(['message' => 'Acesso não autorizado'], 401);
+            return;
+        }
+
+        $limit  = isset($this->data['@limit'])  ? max(1, (int) $this->data['@limit'])  : 25;
+        $page   = isset($this->data['@page'])   ? max(1, (int) $this->data['@page'])   : 1;
+        $offset = isset($this->data['@offset']) ? max(0, (int) $this->data['@offset']) : $limit * ($page - 1);
+
+        $sacc = isset($this->data['sacc']) ? (int) $this->data['sacc'] : null;
+
+        $conn = $app->em->getConnection();
+
+        $saccFilter = $sacc ? 'AND rsi.sacc_number = :sacc' : '';
+
+        $sql = "
+             SELECT
+                o.id,
+                o2.name             AS oportunidade_pai,
+                o.name              AS nome,
+                p.name              AS projeto,
+                a.name              AS nome_agent,
+                r.id                AS inscricao_id,
+                r.number            AS inscricao_numero,
+                r.status            AS inscricao_status,
+                ra.name             AS inscricao_agente,
+                am.value            AS inscricao_agente_cpf,
+                rsi.sacc_number     AS sacc_number,
+                rsi.instrument      AS instrument,
+                rsi.municipality    AS municipality,
+                s.name              AS tipo_projeto
+            FROM opportunity o
+            JOIN opportunity_meta om ON o.id = om.object_id
+            JOIN agent a              ON o.agent_id = a.id
+            JOIN opportunity o2       ON o.parent_id = o2.id
+            JOIN project p            ON o.object_id = p.id
+            JOIN seal_relation sr     ON sr.object_id = p.id
+                                     AND sr.object_type = 'MapasCulturais\\Entities\\Project'
+                                     AND sr.seal_id = 16
+                                     AND sr.status >= 0
+            JOIN seal s               ON s.id = sr.seal_id
+            LEFT JOIN registration r   ON r.opportunity_id = o.id
+            LEFT JOIN agent ra         ON ra.id = r.agent_id
+            LEFT JOIN agent_meta am    ON am.object_id = ra.id AND am.key = 'cpf'
+            LEFT JOIN row_sheet_import rsi ON rsi.registration_number = r.number
+            WHERE om.key = 'use_diligence'
+              AND om.value = 'Sim'
+              AND (a.parent_id = 5975 OR a.id = 5975)
+              AND o.status <> -10
+              AND o.parent_id IS NOT NULL
+              AND o.id <> 6774
+              $saccFilter
+            ORDER BY o.id DESC, r.id ASC
+        ";
+
+        $params = $sacc ? ['sacc' => $sacc] : [];
+
+        $rows     = $conn->fetchAllAssociative($sql, $params);
+        $total    = count($rows);
+        $numPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+        $pageData = array_slice($rows, $offset, $limit);
+
+        $this->json([
+            'data' => $pageData,
+            'meta' => [
+                'total'    => $total,
+                'page'     => $page,
+                'limit'    => $limit,
+                'numPages' => $numPages,
+            ],
+        ]);
+    }
+
     /**
-     * Altera o status para não enviar mais notificações
+     * Altera o status para ão enviar mais notificações
      * @return void
      */
     public function POST_updateNotificationStatus()

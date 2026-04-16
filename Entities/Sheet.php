@@ -3,6 +3,7 @@
 namespace BigSheetImporter\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
+use MapasCulturais\App;
 use MapasCulturais\Entity;
 
 /**
@@ -58,8 +59,8 @@ class Sheet extends Entity
     public function jsonSerialize()
     {
         $serialized = parent::jsonSerialize();
-        $userId = $serialized['user']->id;
-        $userName = $serialized['user']->profile->name;
+        $userId = $serialized['user']->id ?? null;
+        $userName = $serialized['user']->profile->name ?? null;
 
         $serialized['user'] = (object)compact('userId', 'userName');
 

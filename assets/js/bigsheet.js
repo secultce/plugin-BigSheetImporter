@@ -46,15 +46,20 @@ $(document).ready(() => {
                 body: body
             });
 
-            if(!response.ok)
-                return console.error(response);
-
             const data = await response.json();
+
+            if (!response.ok) {
+
+                McMessages.error('Erro ao importar planilha', 'Verifique todos os dados inclusive ' +
+                    'o número de processo. \n'+data.error);
+                return;
+            }
+
             renderOccurrences(data.occurrences);
             renderSavedRows(data.rowsSaved);
 
         } catch (e) {
-            console.error(e);
+            McMessages.error('Erro inesperado', e.message);
         } finally {
             toggleLoading(e.target, loadingElement);
         }
