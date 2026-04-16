@@ -162,7 +162,7 @@ class Controller extends \MapasCulturais\Controller
     }
 
     /**
-     * Chega os dias das últimas notificações para não enviar em duplicidade
+     * Checa os dias das últimas notificações para não enviar em duplicidade
      * @param mixed $terms
      * @param mixed $days
      * @param mixed $rowSheet
@@ -333,7 +333,6 @@ class Controller extends \MapasCulturais\Controller
             LEFT JOIN agent ra         ON ra.id = r.agent_id
             LEFT JOIN agent_meta am    ON am.object_id = ra.id AND am.key = 'cpf'
             LEFT JOIN row_sheet_import rsi ON rsi.registration_number = r.number
-                                          OR rsi.registration_number = r.id::varchar
             WHERE om.key = 'use_diligence'
               AND om.value = 'Sim'
               AND (a.parent_id = 5975 OR a.id = 5975)
